@@ -6,7 +6,9 @@ import {
   Code2,
   Compass,
   Copy,
+  FileText,
   GraduationCap,
+  Link,
   LoaderCircle,
   LogOut,
   Menu,
@@ -21,7 +23,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useAuth } from "../auth";
-import type { AuthSession, Conversation, Message } from "../types";
+import type { AuthSession, Conversation, Message, Source} from "../types";
 import { ApiError, chatApi, errorMessage, safeSourceUrl } from "../lib/api";
 import { streamAnswer } from "../lib/sse";
 
@@ -48,6 +50,43 @@ const suggestions = [
       "Хочу развиваться в IT. Помоги выбрать подходящее направление в ШИФТ.",
   },
 ];
+
+function SourceList({ sources }: { sources: Source[] }) {
+  if (!sources.length) return null;
+  return (
+    <div className="message-sources">
+      <span className="sources-label">Источники</span>
+      <div className="source-list">
+        {sources.map((source, index) => {
+          const url = safeSourceUrl(source.url) || safeSourceUrl(source.source);
+          const label = `${source.source}${source.page ? ` · стр. ${source.page}` : ""}`;
+          return url ? (
+            <a
+              className="source-chip"
+              key={`${source.doc_id}:${index}`}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={label}
+            >
+              <Link size={14} />
+              <span>{label}</span>
+            </a>
+          ) : (
+            <span
+              className="source-chip"
+              key={`${source.doc_id}:${index}`}
+              title={label}
+            >
+              <FileText size={14} />
+              <span>{label}</span>
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function Answer({
   message,
@@ -107,6 +146,7 @@ function Answer({
             </ReactMarkdown>
           </div>
         )}
+        <SourceList sources={message.sources} />
         {message.status === "error" && (
           <p className="message-error" role="alert">
             {message.error}
@@ -475,6 +515,7 @@ export function ChatScreen({ session }: { session: AuthSession }) {
             </button>
             <span>Ассистент ЦФТ и ШИФТ</span>
           </div>
+          <span className="header-caption">Ответы с источниками</span>
         </header>
         {notice && (
           <div className="notice" role="alert">

@@ -1,5 +1,7 @@
+import re
 from pathlib import Path, PurePosixPath
 
+import yaml
 from langchain_core.documents import Document
 from langchain_text_splitters import (
     MarkdownHeaderTextSplitter,
@@ -33,6 +35,19 @@ md_header_splitter = MarkdownHeaderTextSplitter(
     strip_headers=False,
 )
 
+_FRONTMATTER_RE = re.compile(
+    r"^---\s*\r?\n(.*?)\r?\n---\s*(?:\r?\n|$)",
+    flags=re.DOTALL,
+)
+
+_HEADER_MARKERS = (
+    "source_url:",
+    "fetch_url:",
+    "source_format:",
+    "document_id:",
+    "parser_version:",
+)
+
 
 def _decode_bytes(raw: bytes) -> str:
     for encoding in ("utf-8-sig", "cp1251"):
@@ -45,6 +60,53 @@ def _decode_bytes(raw: bytes) -> str:
 
 def _read_text_file(path: Path) -> str:
     return _decode_bytes(path.read_bytes())
+
+
+def _parse_yaml_block(block: str) -> dict:
+    try:
+        parsed = yaml.safe_load(block)
+        if isinstance(parsed, dict):
+            return parsed
+    except yaml.YAMLError:
+        pass
+
+    # Fallback на случай неэкранированных двоеточий внутри title
+    result: dict[str, str] = {}
+    for line in block.splitlines():
+        if ":" not in line or line.startswith((" ", "\t", "-")):
+            continue
+        key, val = line.split(":", 1)
+        key = key.strip()
+        val = val.strip().strip("'\"")
+        if key and val.lower() not in ("null", "none", "[]", ""):
+            result[key] = val
+    return result
+
+
+def _extract_frontmatter(text: str) -> tuple[dict, str]:
+    match = _FRONTMATTER_RE.match(text)
+    if match:
+        meta = _parse_yaml_block(match.group(1))
+        body = text[match.end() :].strip()
+        return meta, body
+
+    # Если шапка идёт в начале файла без разделителей --- до первой пустой строки
+    parts = re.split(r"\r?\n\r?\n", text, maxsplit=1)
+    if len(parts) == 2 and any(marker in parts[0] for marker in _HEADER_MARKERS):
+        meta = _parse_yaml_block(parts[0])
+        if meta:
+            return meta, parts[1].strip()
+
+    return {}, text.strip()
+
+
+def _clean_meta_str(value: object) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text or text.lower() in ("null", "none"):
+        return None
+    return text
 
 
 def _is_hidden(rel_path: Path) -> bool:
@@ -95,6 +157,7 @@ def _split_file(
     rel_source: str,
     filename: str,
     doc_title: str,
+    source_url: str | None = None,
 ) -> list[Document]:
     base_prefix = f"Раздел: {category.replace('/', ' / ')} | Документ: {doc_title}"
     chunks: list[Document] = []
@@ -126,6 +189,8 @@ def _split_file(
                             "category": category,
                             "source": rel_source,
                             "filename": filename,
+                            "title": doc_title,
+                            "source_url": source_url,
                             "headers": headers_str,
                         },
                     )
@@ -140,6 +205,8 @@ def _split_file(
                         "category": category,
                         "source": rel_source,
                         "filename": filename,
+                        "title": doc_title,
+                        "source_url": source_url,
                         "headers": "",
                     },
                 )
@@ -149,21 +216,34 @@ def _split_file(
 
 
 def _build_chunks_for_path(path: Path, root: Path) -> tuple[str, str, list[Document]]:
-    text = _read_text_file(path)
+    raw_text = _read_text_file(path)
     rel_path = path.relative_to(root)
     rel_source = rel_path.as_posix()
-    category = rel_path.parent.as_posix() if rel_path.parent != Path(".") else "общее"
-    if not text:
-        return category, rel_source, []
+    folder_category = rel_path.parent.as_posix() if rel_path.parent != Path(".") else "общее"
+    if not raw_text:
+        return folder_category, rel_source, []
 
-    doc_title = path.stem.replace("_", " ").replace("-", " ")
+    frontmatter, body = _extract_frontmatter(raw_text)
+    if not body:
+        return folder_category, rel_source, []
+
+    category = _clean_meta_str(frontmatter.get("category")) or folder_category
+    doc_title = (
+        _clean_meta_str(frontmatter.get("title"))
+        or path.stem.replace("_", " ").replace("-", " ")
+    )
+    source_url = _clean_meta_str(
+        frontmatter.get("source_url") or frontmatter.get("fetch_url")
+    )
+
     chunks = _split_file(
-        text=text,
+        text=body,
         ext=path.suffix.lower(),
         category=category,
         rel_source=rel_source,
         filename=path.name,
         doc_title=doc_title,
+        source_url=source_url,
     )
     return category, rel_source, chunks
 

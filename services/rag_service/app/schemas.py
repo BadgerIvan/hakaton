@@ -15,6 +15,7 @@ class AskRequest(BaseModel):
 class SourceChunk(BaseModel):
     category: str
     source: str
+    url: str | None = None
     score: float
 
 
