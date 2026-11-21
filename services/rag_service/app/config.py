@@ -23,5 +23,16 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
+    retrieval_k: int = 12
+    top_k: int = 4
+    rerank_enabled: bool = True
+    rerank_model: str = "jinaai/jina-reranker-v2-base-multilingual"
+    rerank_high_threshold: float = 0.45
+    rerank_low_threshold: float = 0.20
+    fastembed_cache_path: str = "/app/.fastembed_cache"
+
+    rewrite_enabled: bool = True
+    rewrite_history_limit: int = 4
+
 
 settings = Settings()
