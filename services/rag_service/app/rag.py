@@ -51,11 +51,18 @@ def _to_lc_history(history: list[ChatMessage]) -> list[HumanMessage | AIMessage]
     ]
 
 
-async def retrieve_context(question: str) -> tuple[str, list[SourceChunk]]:
+def _retrieval_query(question: str, history: list[ChatMessage]) -> str:
+    # A follow-up such as "А какие там условия?" needs the topic of the previous turn
+    # during retrieval, before the history is added to the generation prompt.
+    previous = [message.content for message in history if message.role == "user"][-2:]
+    return "\n".join([*(value[:1000] for value in previous), question])
+
+
+async def retrieve_context(question: str, history: list[ChatMessage]) -> tuple[str, list[SourceChunk]]:
     store = get_vectorstore()
     results = await asyncio.to_thread(
         store.similarity_search_with_score,
-        question,
+        _retrieval_query(question, history),
         settings.top_k,
     )
 
@@ -81,7 +88,7 @@ async def retrieve_context(question: str) -> tuple[str, list[SourceChunk]]:
 
 
 async def generate_answer(question: str, history: list[ChatMessage]) -> tuple[str, list[SourceChunk]]:
-    context, sources = await retrieve_context(question)
+    context, sources = await retrieve_context(question, history)
     if not sources:
         return NO_DATA_REPLY, []
 
@@ -99,7 +106,7 @@ async def stream_answer(
     question: str,
     history: list[ChatMessage],
 ) -> tuple[list[SourceChunk], AsyncIterator[str]]:
-    context, sources = await retrieve_context(question)
+    context, sources = await retrieve_context(question, history)
 
     async def _token_generator() -> AsyncIterator[str]:
         if not sources:

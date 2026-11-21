@@ -15,12 +15,11 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from sqlalchemy import delete, select, text
 from sqlalchemy.dialects.postgresql import insert as postgres_insert
-from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
 from .config import Settings
-from .database import Base, RateLimit, User, UserSession, build_engine
+from .database import RateLimit, User, UserSession, build_engine
 
 password_hasher = PasswordHasher()
 
@@ -97,10 +96,7 @@ def consume_limit(
     window = now // settings.rate_window_seconds
     expires = (window + 1) * settings.rate_window_seconds
     key = digest(f"{scope}:{value}:{window}")
-    insert = (
-        sqlite_insert if database.bind.dialect.name == "sqlite" else postgres_insert
-    )
-    statement = insert(RateLimit).values(key=key, count=1, expires_at=expires)
+    statement = postgres_insert(RateLimit).values(key=key, count=1, expires_at=expires)
     statement = statement.on_conflict_do_update(
         index_elements=[RateLimit.key], set_={"count": RateLimit.count + 1}
     ).returning(RateLimit.count)
@@ -159,7 +155,6 @@ def create_app(settings: Settings | None = None):
 
     @asynccontextmanager
     async def lifespan(application: FastAPI):
-        Base.metadata.create_all(engine)
         application.state.dummy_hash = password_hasher.hash(secrets.token_urlsafe(32))
         yield
         engine.dispose()

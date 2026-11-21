@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 @dataclass(frozen=True)
 class Settings:
     database_url: str = field(
-        default_factory=lambda: os.getenv("DATABASE_URL", "sqlite:///./data/auth.db")
+        default_factory=lambda: os.getenv("DATABASE_URL", "postgresql+psycopg://partner:partner@127.0.0.1:5432/partner")
     )
     allowed_origins: tuple[str, ...] = field(
         default_factory=lambda: tuple(

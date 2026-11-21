@@ -87,3 +87,34 @@ export function safeSourceUrl(value?: string): string | undefined {
     return undefined;
   }
 }
+
+async function chatRequest<T>(path: string, method = "GET", csrf?: string, body?: object, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(`${agentBase}/api/v1${path}`, {
+    method,
+    credentials: "include",
+    headers: {
+      ...(body ? { "Content-Type": "application/json" } : {}),
+      ...(method !== "GET" ? { "X-Requested-With": "PartnerAgent" } : {}),
+      ...(csrf ? { "X-CSRF-Token": csrf } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+    signal: signal || AbortSignal.timeout(15000),
+  });
+  if (!response.ok) throw await responseError(response);
+  return response.status === 204 ? undefined as T : response.json() as Promise<T>;
+}
+
+export const chatApi = {
+  list: async (signal?: AbortSignal): Promise<import("../types").Conversation[]> => {
+    const result: import("../types").Conversation[] = [];
+    for (let offset = 0; ; offset += 100) {
+      const page = await chatRequest<Omit<import("../types").Conversation, "messages">[]>(`/conversations?limit=100&offset=${offset}`, "GET", undefined, undefined, signal);
+      result.push(...page.map((chat) => ({ ...chat, messages: [] })));
+      if (page.length < 100) return result;
+    }
+  },
+  get: (id: string, signal?: AbortSignal) => chatRequest<import("../types").Conversation>(`/conversations/${id}`, "GET", undefined, undefined, signal),
+  create: (title: string, csrf: string, signal?: AbortSignal) => chatRequest<import("../types").Conversation>("/conversations", "POST", csrf, { title }, signal),
+  remove: (id: string, csrf: string) => chatRequest<void>(`/conversations/${id}`, "DELETE", csrf),
+  cancel: (id: string, requestId: string, csrf: string) => chatRequest<void>(`/conversations/${id}/requests/${requestId}/cancel`, "POST", csrf),
+};

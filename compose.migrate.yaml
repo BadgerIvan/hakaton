@@ -1,0 +1,10 @@
+# Optional legacy auth.db mount, only for the one-time import command.
+services:
+  auth:
+    volumes:
+      - type: bind
+        source: ${SQLITE_AUTH_PATH:-./legacy/auth.db}
+        target: /legacy/auth.db
+        read_only: true
+        bind:
+          create_host_path: false

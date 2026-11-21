@@ -1,25 +1,37 @@
-import tempfile
+import os
 import time
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
-from pathlib import Path
+from uuid import uuid4
 
 from fastapi.testclient import TestClient
-from sqlalchemy import select, update
+from sqlalchemy import create_engine, select, text, update
+from sqlalchemy.engine import make_url
 
 from app.config import Settings
 from app.database import User, UserSession
 from app.main import create_app
+from app.migrate import upgrade
 
 
 class AuthTests(unittest.TestCase):
     def setUp(self):
-        self.directory = tempfile.TemporaryDirectory()
-        self.addCleanup(self.directory.cleanup)
-        self.settings = Settings(
-            database_url=f"sqlite:///{Path(self.directory.name) / 'auth.db'}"
-        )
+        url = os.getenv("TEST_DATABASE_URL")
+        if not url:
+            self.skipTest("Set TEST_DATABASE_URL to a dedicated PostgreSQL database")
+        admin = create_engine(url)
+        schema = "test_auth_" + uuid4().hex
+        with admin.begin() as db:
+            db.execute(text(f'CREATE SCHEMA "{schema}"'))
+        def cleanup():
+            with admin.begin() as db:
+                db.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
+            admin.dispose()
+        self.addCleanup(cleanup)
+        target = make_url(url).update_query_dict({"options": f"-csearch_path={schema}"})
+        self.settings = Settings(database_url=target.render_as_string(hide_password=False))
+        upgrade(self.settings.database_url)
         self.app = create_app(self.settings)
         self.client = TestClient(self.app)
         self.client.__enter__()

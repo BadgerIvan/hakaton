@@ -1,4 +1,4 @@
-import type { HistoryMessage, Source } from "../types";
+import type { Source } from "../types";
 import { agentBase, ApiError, responseError } from "./api";
 
 export interface ServerEvent {
@@ -55,7 +55,8 @@ function readSources(value: unknown): Source[] {
 
 export async function streamAnswer(options: {
   question: string;
-  history: HistoryMessage[];
+  conversationId: string;
+  requestId: string;
   csrf: string;
   signal: AbortSignal;
   onSources: (sources: Source[]) => void;
@@ -83,7 +84,8 @@ export async function streamAnswer(options: {
       },
       body: JSON.stringify({
         question: options.question,
-        history: options.history,
+        conversation_id: options.conversationId,
+        request_id: options.requestId,
       }),
       signal: controller.signal,
     });

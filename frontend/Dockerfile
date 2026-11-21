@@ -8,6 +8,6 @@ RUN npm run build
 FROM nginx:1.28-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY deploy/default.conf.template /etc/nginx/templates/default.conf.template
-ENV AGENT_UPSTREAM=http://host.docker.internal:8000
+ENV AGENT_UPSTREAM=http://backend:8000
 ENV NGINX_ENVSUBST_FILTER=^AGENT_UPSTREAM$
 EXPOSE 80
