@@ -9,12 +9,24 @@ class PDFParser(BaseParser):
 
     def parse(self, path: Path) -> ParseResult:
         pages_out = []
+        warnings = []
         with fitz.open(path) as pdf:
             count = len(pdf)
             for number, page in enumerate(pdf, start=1):
                 text = page.get_text("text", sort=True)
                 lines = [re.sub(r"\s+", " ", x).strip() for x in text.splitlines()]
                 lines = [x for x in lines if x]
+                if not lines:
+                    try:
+                        from PIL import Image
+                        from .image_parser import ocr
+                        pix=page.get_pixmap(dpi=180)
+                        text=ocr(Image.frombytes('RGB',[pix.width,pix.height],pix.samples))
+                        if text:
+                            lines=text.splitlines()
+                            warnings.append(f'Страница {number}: использован OCR')
+                    except Exception as e:
+                        warnings.append(f'Страница {number}: OCR недоступен: {e}')
                 if not lines:
                     pages_out.append(f"## Страница {number}\n\n[Текст не извлечён: возможен скан, нужен OCR]")
                     continue
@@ -25,4 +37,4 @@ class PDFParser(BaseParser):
             raise ValueError("Пустой PDF")
         if all("[Текст не извлечён" in p for p in pages_out):
             raise ValueError("PDF содержит только изображения/сканы; нужен OCR")
-        return ParseResult(markdown="\n\n".join(pages_out) + "\n", title=path.stem, pages=count)
+        return ParseResult(markdown="\n\n".join(pages_out) + "\n", title=path.stem, pages=count,warnings=warnings)
