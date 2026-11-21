@@ -13,6 +13,7 @@ class AskRequest(BaseModel):
 
 
 class SourceChunk(BaseModel):
+    category: str
     source: str
     score: float
 
@@ -23,11 +24,13 @@ class AskResponse(BaseModel):
 
 
 class DocumentInfo(BaseModel):
+    category: str
     source: str
     chunks: int
 
 
 class ReindexResponse(BaseModel):
+    folders_found: int
     files_indexed: int
     total_chunks: int
     files: list[DocumentInfo]

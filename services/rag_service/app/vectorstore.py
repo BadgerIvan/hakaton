@@ -87,7 +87,7 @@ def get_vectorstore() -> QdrantVectorStore:
 
 def list_documents() -> list[DocumentInfo]:
     ensure_collection(retries=3, delay=1.0)
-    counts: dict[str, int] = {}
+    counts: dict[tuple[str, str], int] = {}
     offset = None
 
     while True:
@@ -100,13 +100,15 @@ def list_documents() -> list[DocumentInfo]:
         )
         for point in points:
             meta = (point.payload or {}).get("metadata", {})
+            category = str(meta.get("category", "общее"))
             source = str(meta.get("source", "unknown"))
-            counts[source] = counts.get(source, 0) + 1
+            key = (category, source)
+            counts[key] = counts.get(key, 0) + 1
 
         if offset is None:
             break
 
     return [
-        DocumentInfo(source=src, chunks=cnt)
-        for src, cnt in sorted(counts.items())
+        DocumentInfo(category=cat, source=src, chunks=cnt)
+        for (cat, src), cnt in sorted(counts.items())
     ]
