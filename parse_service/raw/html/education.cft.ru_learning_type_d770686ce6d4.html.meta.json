@@ -1,0 +1,14 @@
+{
+  "source_url": "https://education.cft.ru/learning/type",
+  "fetch_url": "https://education.cft.ru/learning/type",
+  "fetched_at": "2026-11-21T06:42:46+00:00",
+  "category": "education",
+  "vendor": "ЦФТ",
+  "language": "ru",
+  "document_id": "d770686ce6d4",
+  "source_kind": "official_public",
+  "include_in_rag": true,
+  "last_modified": null,
+  "etag": null,
+  "title": "Форма обучения"
+}

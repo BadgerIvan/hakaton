@@ -1,0 +1,14 @@
+{
+  "source_url": "https://www.cft.ru/pages/technologies",
+  "fetch_url": "https://www.cft.ru/pages/technologies",
+  "fetched_at": "2026-11-21T06:42:38+00:00",
+  "category": "technology",
+  "vendor": "ЦФТ",
+  "language": "ru",
+  "document_id": "c31896c3c0b1",
+  "source_kind": "official_public",
+  "include_in_rag": true,
+  "last_modified": null,
+  "etag": null,
+  "title": "Используемые  технологии"
+}

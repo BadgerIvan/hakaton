@@ -1,0 +1,14 @@
+{
+  "source_url": "https://www.cft.ru/contacts",
+  "fetch_url": "https://www.cft.ru/contacts",
+  "fetched_at": "2026-11-21T06:42:58+00:00",
+  "category": "company",
+  "vendor": "ЦФТ",
+  "language": "ru",
+  "document_id": "79565c4c4834",
+  "source_kind": "official_public",
+  "include_in_rag": true,
+  "last_modified": null,
+  "etag": null,
+  "title": "Программное обеспечение. Контакты"
+}

@@ -1,0 +1,15 @@
+{
+  "source_url": "https://catalog.cft.ru/applications/corporate/overview",
+  "fetch_url": "https://catalog.cft.ru/bankinfo/corporate/3/Ru",
+  "fetched_at": "2026-11-21T06:44:16+00:00",
+  "category": "products",
+  "vendor": "ЦФТ",
+  "language": "ru",
+  "document_id": "0a99e18c442e",
+  "source_kind": "official_public",
+  "include_in_rag": true,
+  "last_modified": null,
+  "etag": null,
+  "catalog_kind": "overview",
+  "title": "ЦФТ-Корпорация"
+}

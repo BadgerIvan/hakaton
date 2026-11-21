@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" />
+
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <title>Кредиты. Привлечение и размещение средств </title>
+    <link href="/content/styles/all?v=FKXWtVSOUFMFbmgEL8NzdTO-mnFzP1h8bENIccRGSLc1" rel="stylesheet"/>
+
+    <script src="/Scripts/jquery-1.10.2.min.js"></script>
+</head>
+<body>
+    <aside class="cookies-banner" id="cookiesBanner" role="dialog" aria-modal="false" aria-labelledby="cookiesBannerTitle" aria-describedby="cookiesBannerDescription">
+    <div class="cookies-banner__container">
+
+        
+        <div class="cookies-banner__view cookies-banner__view_main" id="cookiesMainView">
+            <h2 class="cookies-banner__label" id="cookiesBannerTitle">Сookie-файлы</h2>
+            <div class="cookies-banner__text">
+                <span id="cookiesBannerDescription">Мы используем cookies для работы сайта и аналитики с помощью Яндекс.Метрики. Вы можете принять все, настроить или отклонить cookies. Подробнее — в <a class="cookies-banner__link" href="/sites/education/Documents/Politics.pdf" target="_blank" rel="noopener noreferrer">Политике конфиденциальности</a>.</span>
+                <button type="button" class="cookies-banner__link cookies-banner__settings-toggle" id="openSettingsLink">Настройка cookies</button>
+            </div>
+            <div class="cookies-banner__actions">
+                <button tabindex="1" type="button" class="cookies-banner__btn cookies-banner__btn_accept" id="cookiesAcceptBtn">
+                    Разрешить
+                </button>
+                <button tabindex="1" type="button" class="cookies-banner__btn cookies-banner__btn_decline" id="cookiesDeclineBtn">
+                    Не разрешать
+                </button>
+            </div>
+        </div>
+
+    </div>
+</aside>
+
+
+<div class="cookies-modal-backdrop" id="cookiesModalBackdrop" hidden>
+    <div class="cookies-modal" id="cookiesModal" role="dialog" aria-modal="true" aria-labelledby="cookiesModalTitle">
+        <button type="button" class="cookies-modal__close" id="closeSettingsBtn" aria-label="Закрыть настройки">
+            <svg aria-hidden="true" class="cookies-modal__close-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M0 4C0 1.79086 1.79086 0 4 0H20C22.2091 0 24 1.79086 24 4V20C24 22.2091 22.2091 24 20 24H4C1.79086 24 0 22.2091 0 20V4Z" fill="white" />
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M19 6.4L17.6 5L12 10.6L6.4 5L5 6.4L10.6 12L5 17.6L6.4 19L12 13.4L17.6 19L19 17.6L13.4 12L19 6.4Z" fill="#707070" />
+            </svg>
+        </button>
+        <h3 class="cookies-modal__title" id="cookiesModalTitle">Настройки cookie</h3>
+        <div class="cookies-modal__categories">
+            
+            <label class="cookies-modal__category cookies-modal__category_required">
+                <input type="checkbox" class="cookies-modal__checkbox" data-category="default" checked disabled>
+                <span class="cookies-modal__category-info">
+                    <span class="cookies-modal__category-name">Обязательные cookie</span>
+                    <span class="cookies-modal__category-desc">Необходимы для корректной работы сайта</span>
+                </span>
+                <span class="cookies-modal__checkbox-icon">
+                    <svg class="checkbox-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path class="checkbox-bg" d="M19 3C20.1 3 21 3.9 21 5V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V5C3 3.9 3.9 3 5 3H19ZM6 5C5.45 5 5 5.45 5 6V18C5 18.55 5.45 19 6 19H18C18.55 19 19 18.55 19 18V6C19 5.45 18.55 5 18 5H6Z" />
+                        <path class="checkbox-check" d="M19 3C20.1 3 21 3.9 21 5V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V5C3 3.9 3.9 3 5 3H19ZM18.29 7.29004C17.9 6.90004 17.2699 6.90004 16.8799 7.29004L10 14.1699L7.12012 11.29C6.73012 10.9 6.09996 10.9 5.70996 11.29C5.52273 11.4769 5.41797 11.7306 5.41797 11.9951C5.418 12.2596 5.52274 12.5134 5.70996 12.7002L9.2998 16.29C9.68979 16.68 10.32 16.68 10.71 16.29L18.29 8.7002C18.68 8.31021 18.68 7.68004 18.29 7.29004Z" />
+                    </svg>
+                </span>
+            </label>
+
+            
+            <label class="cookies-modal__category cookies-modal__category_analytical">
+                <input type="checkbox" class="cookies-modal__checkbox" data-category="analytical">
+                <span class="cookies-modal__category-info">
+                    <span class="cookies-modal__category-name">Аналитические cookie</span>
+                    <span class="cookies-modal__category-desc">Помогают улучшать функциональность и контент</span>
+                </span>
+                <span class="cookies-modal__checkbox-icon">
+                    <svg class="checkbox-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path class="checkbox-bg" d="M19 3C20.1 3 21 3.9 21 5V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V5C3 3.9 3.9 3 5 3H19ZM6 5C5.45 5 5 5.45 5 6V18C5 18.55 5.45 19 6 19H18C18.55 19 19 18.55 19 18V6C19 5.45 18.55 5 18 5H6Z" />
+                        <path class="checkbox-check" d="M19 3C20.1 3 21 3.9 21 5V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V5C3 3.9 3.9 3 5 3H19ZM18.29 7.29004C17.9 6.90004 17.2699 6.90004 16.8799 7.29004L10 14.1699L7.12012 11.29C6.73012 10.9 6.09996 10.9 5.70996 11.29C5.52273 11.4769 5.41797 11.7306 5.41797 11.9951C5.418 12.2596 5.52274 12.5134 5.70996 12.7002L9.2998 16.29C9.68979 16.68 10.32 16.68 10.71 16.29L18.29 8.7002C18.68 8.31021 18.68 7.68004 18.29 7.29004Z" />
+                    </svg>
+                </span>
+            </label>
+        </div>
+        <div class="cookies-modal__actions">
+            <button type="button" class="cookies-modal__btn" id="cookiesConfirmBtn">
+                Сохранить
+            </button>
+        </div>
+    </div>
+</div>
+
+    <section id="em" class="expanded-menu slideout-menu">
+<ul class="main-menu first-level clearfix">
+    
+    <li class="sub-menu main-menu menu-item clearfix">
+        <a class="sub-menu-link" href="javascript:void(0)">Программы</a>
+        <ul class="second-level clearfix">
+                <li class="clearfix sub-menu">
+                    <a class="ml" href="/courses/product?product=ЦФТ-Банк">ЦФТ-Банк</a>
+
+                        <a class="dd-link"><i></i></a>
+                        <ul class="third-level clearfix">
+                                <li>
+                                    <a href="/courses/product?product=ЦФТ-Банк#/IT-специалисты">IT-специалисты</a>
+                                </li>
+                                <li>
+                                    <a href="/courses/product?product=ЦФТ-Банк#/Базовые курсы">Базовые курсы</a>
+                                </li>
+                                <li>
+                                    <a href="/courses/product?product=ЦФТ-Банк#/Общий список курсов">Общий список курсов</a>
+                                </li>
+                                <li>
+                                    <a href="/courses/product?product=ЦФТ-Банк#/Бизнес-специалисты">Бизнес-специалисты</a>
+                                </li>
+                        </ul>
+                </li>
+                <li class="clearfix ">
+                    <a class="" href="/courses/product?product=ЦФТ-Банк Розница 2МСА">ЦФТ-Банк Розница 2МСА</a>
+
+                </li>
+                <li class="clearfix ">
+                    <a class="" href="/courses/product?product=ЦФТ-Корпорация">ЦФТ-Корпорация</a>
+
+                </li>
+                <li class="clearfix sub-menu">
+                    <a class="ml" href="/courses/product?product=ШИФТ ЦФТ-Банк">ШИФТ ЦФТ-Банк</a>
+
+                        <a class="dd-link"><i></i></a>
+                        <ul class="third-level clearfix">
+                                <li>
+                                    <a href="/courses/product?product=ШИФТ ЦФТ-Банк#/Базовые курсы">Базовые курсы</a>
+                                </li>
+                        </ul>
+                </li>
+        </ul>
+    </li>
+    <li class="main-menu menu-item clearfix"><a href="/pages/tarrifs">Тарифы</a></li>
+    <li class="main-menu menu-item clearfix"><a href="/learning">Порядок консультаций</a></li>
+    <li class="main-menu menu-item clearfix"><a href="/pages/contacts">Контакты</a></li>
+</ul>
+
+
+    </section>
+    <section id="sp-separate">
+        <div class='page-wrap'>
+            <section class='new-header'>
+                <div class='clearfix'>
+                    <div class='new-logos clearfix'>
+                        <a href="https://www.cft.ru/" class="logo cft hide-text">Центр Финансовых Технологий</a>
+                        <a href="/" class="logo ec hide-text">Учебный центр</a>
+                    </div>
+                    
+                    <div class='new-menu-items clearfix'>
+                        <div class="new-nav clearfix">
+                            <ul class='new-nav-list clearfix'>
+                                
+                                <li id='courses'><a href="javascript:void(0)">Программы</a></li>
+                                <li><a href="/pages/tarrifs">Тарифы</a></li>
+                                <li><a href="/learning">Порядок консультаций</a></li>
+                                <li><a href="/pages/contacts">Контакты</a></li>
+                            </ul>
+                            
+                            <div class='new-search'>
+                                <a href="/search"></a>
+                            </div>
+                            
+                            <div id='busket_container' class="basket">
+                                <div>
+                                    <a href="/basket" class="new-basket-ico hide-text"></a><a href="/basket" class="new-basket-link">Корзина</a>
+                                    <div class="basket-counter"></div>
+                                    <div class="basket-list">
+                                        <ul>
+                                            <li class="emptybusket"><a href="#">Необходимо добавить программы в корзину</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <i class="icon nav"></i>
+                            
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section id="dropdwn" class="dropdown">
+
+
+<div class="dropdown_menu clearfix">
+    <div id="empty_courses_container">
+        <ul class="dropdown_menu-list first">
+                <li>
+                    <a href="/courses/product?product=ЦФТ-Банк Розница 2МСА">
+                        ЦФТ-Банк Розница 2МСА
+                    </a>
+                </li>
+                <li>
+                    <a href="/courses/product?product=ЦФТ-Корпорация">
+                        ЦФТ-Корпорация
+                    </a>
+                </li>
+        </ul>
+    </div>
+    <div id="expand_courses_container">
+                <ul class="dropdown_menu-list second">
+                    <li>
+                        <a href="/courses/product?product=ЦФТ-Банк">ЦФТ-Банк</a>
+                    </li>
+                            <li class="subtitle">
+                                <a href="/courses/product?product=ЦФТ-Банк#/IT-специалисты">IT-специалисты</a>
+                            </li>
+                            <li class="subtitle">
+                                <a href="/courses/product?product=ЦФТ-Банк#/Базовые курсы">Базовые курсы</a>
+                            </li>
+                            <li class="subtitle">
+                                <a href="/courses/product?product=ЦФТ-Банк#/Бизнес-специалисты">Бизнес-специалисты</a>
+                            </li>
+                            <li class="subtitle">
+                                <a href="/courses/product?product=ЦФТ-Банк#/Общий список курсов">Общий список курсов</a>
+                            </li>
+                </ul>
+                <ul class="dropdown_menu-list second">
+                    <li>
+                        <a href="/courses/product?product=ШИФТ ЦФТ-Банк">ШИФТ ЦФТ-Банк</a>
+                    </li>
+                            <li class="subtitle">
+                                <a href="/courses/product?product=ШИФТ ЦФТ-Банк#/Базовые курсы">Базовые курсы</a>
+                            </li>
+                </ul>
+
+    </div>
+</div>
+
+            </section>
+            
+
+            
+    <section class="breadcrumb">
+        <div>
+            <ul>
+                <li class='not-active-link'><a href="javascript:void(0)">Программы</a></li>
+                <li><a href="/courses/product?product=ЦФТ-Банк">ЦФТ-Банк</a></li>
+                <li class="current"><a href="javascript:void(0)">Кредиты. Привлечение и размещение средств </a></li>
+            </ul>
+        </div>
+    </section>
+
+            
+
+
+<div class="container">
+    <div class="content">
+        <h1 class="mt">Кредиты. Привлечение и размещение средств </h1>
+        <div class="left-side-menu">
+            <section class="categories">
+                <div id='side_roles_container'>
+                </div>
+            </section>
+            <!-- /categories-->
+            <!-- /recommended-courses-->
+            <div class="training">
+                <a class='clearfix' href='/learning/type#distance'>
+                    <div class="block distance">
+                        <p>Дистанционное консультирование</p>
+                        <p>- это процесс приобретения знаний с применением современных телекоммуникационных технологий </p>
+                    </div>
+                </a>
+                <a class='clearfix' href='/learning/type#fulltime'>
+                    <div class="block personal">
+                        <p>Очные консультации</p>
+                        <p>проводят ведущие специалисты в современных учебных классах в Москве и Новосибирске</p>
+                    </div>
+                </a>
+            </div>
+            <!-- /training info		-->
+        </div>
+        <section class="courses-list">
+            <article class='course-desc list-wrapper'>
+                <div class="top-info clearfix">
+                    <div class="row">
+                        <div class="col-3">
+                            <div class="format">
+                                <p>дистанционно</p>
+                            </div>
+                        </div>
+                        <div class="col-9">
+                            <div class="duration">
+                                <p>4</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ExternalClass23CB1AD9C9B1407C8D8CBAEB207616F7"><p>Комплекс приложений «Межбанковские сделки по привлечению и размещению» обеспечивает решение задач, связанных с заключением, обслуживанием и закрытием сделок на межбанковском денежном рынке и на межбанковском рынке капитала.<br><br>Реестр межбанковских сделок – ядро системы учета межбанковских сделок - хранит все существенные условия сделок, регистрирует все действия пользователей по добавлению, изменению и удалению данных.<br><br>Формирование SWIFT сообщений – механизм, позволяющий настраивать, формировать и отправлять SWIFT сообщения второй и третьей категории, связанные с заключением сделки и перечислением денежных средств по ней. Механизм автоматической квитовки позволяет упростить процесс заключения сделки и обмена подтверждениями по ней.<br><br>Интеграция с приложением «Документооборот» позволяет настраивать и в режиме реального времени отражать финансовые обязательства в бухгалтерском учете банка в соответствии с требованиями законодательства и внутренней учетной политикой банка. Открытие финансовых счетов, формирование платёжных документов, индивидуальная и групповая обработка сделок, выполнение операций по принципу «двух рук» при помощи финансовых распоряжений – это всё позволяет комплекс приложений «Межбанковские сделки по привлечению и размещению».<br><br><strong>Цели урока</strong><br><br>Вы узнаете&#58;</p><ol><li>Настройка продукта<br> </li><ul><li>возможности настройки продукта «Привлечение и размещение средств»</li><li>возможности настройки правил открытия и использования счетов</li><li>назначение справочников&#58; «Справочник видов валютных операций», «Настройки.», «Шаблоны SWIFT»<br></li><li>возможности настройки правил плавающей ставки</li><li>возможности настройки учета сделок привлечения и размещения в соответствии с Международными стандартами финансовой отчетности (МСФО)<br></li></ul><li>Регистрация сделки<br> </li><ul><li>каким образом осуществляется работа с генеральными соглашениями(регистрация, редактирование, закрытие)</li><li>порядок регистрации и обработки в системе новой сделки МБК</li><li>каким образом выполнить подтверждение сделки</li><li>как открыть счета по сделке, по договору кредитной линии</li><li>порядок работы с договорами обеспечения</li><li>порядок создания и редактирования сообщений SWIFT в системе</li></ul><li>Выполнение основных операций по договору&#58; выдача/получение средств по договору, учет процентов, комиссий, штрафов и гашение задолженностей по сделке<br> </li><ul><li>каким образом выполняются операции по сделке&#58;<br>- выдача, получение суммы договора<br>- учет начисленных процентов, комиссий, штрафов<br>- оплата/получение процентов<br>- гашение кредита и процентов<br>- возврат суммы договора и процентов<br>-&#160;учет по стандартам МСФО<br></li></ul><li>Выполнение прочих операций по сделкам&#58; пролонгация, востребование, неттинг<br> </li><ul><li>как пролонгировать договор, изменить его условия</li><li>как выполнить взаимозачет обязательств с помощью неттинга DEPO-DEPO</li></ul><li>Резервирование по договору, закрытие сделки<br> </li><ul><li>каким образом выполняется расчет категории качества ссуды</li><li>как произвести резервирование по одной или нескольким сделкам<br></li><li>каким образом вести и рассчитывать суммы оценочного резерва и выполнять операции по корректировке резерва РСБУ до оценочного резерва в соответствии с Международными стандартами финансовой отчетности (МСФО)<br></li><li>как закрыть договор</li></ul></ol><p>Вы поймете&#58;</p><ul><li>как в системе происходит заполнение журналов с результатами расчетов процентов, пеней и штрафов,<br></li><li>на каких общих принципах реализации строится выполнение операций по сделке,<br></li><li>алгоритм расчета группы риска по договору, реализованному в системе<br></li></ul><p>Вы научитесь&#58;</p><ul><li>выполнять основные настройки по организации работы по привлечению и размещению средств в системе<br></li><li>выполнять настройки по учету сделок привлечения и размещения в соответствии со стандартами МСФО<br></li><li>регистрировать новое генеральное соглашение<br></li><li>создавать новую сделку, открывать счета по ней, вводить сделку в действие<br></li><li>формировать и редактировать SWIFT-сообщение формата МТ 320 на подтверждение/изменение/отмену сделки<br></li><li>выполнять выдачу/получение суммы договора, формировать SWIFT- сообщение формата МТ 202<br></li><li>рассчитывать, учитывать, производить оплату/получение процентов<br></li><li>рассчитывать, учитывать, производить оплату/получение комиссий, пеней, неустоек<br></li><li>выполнять гашение кредита и процентов, комиссий, пеней, неустоек<br></li><li>подтверждать/отменять штрафы за досрочное погашение сделки<br></li><li>производить возврат суммы договора и процентов<br></li><li>выполнять пролонгацию/изменение условий договора<br></li><li>выполнять неттинг DEPO-DEPO</li><li>вести учет по стандартам МСФО по сделке привлечения / размещения</li><li>осуществлять резервирование по договору</li><li>рассчитывать оценочный резерв и выполнять корректировку резерва РСБУ до оценочного</li><li>устанавливать приоритеты распределения обеспечения</li><li>закрывать договор<br></li></ul></div>
+                    <h3 class="kpiHeader">Приложения:</h3>
+<div class="ExternalClass6AFC39B720A347B898188082398DE99E"><p>1B160090 Бухгалтерский и аналитический учет задолженностей</p><p>1B160030 Бухгалтерский учет. Счета по договору</p><p>1B160110 Выполнение регламентных процедур</p><p>1B160120 Изменение существенных условий сделки</p><p>1B160190 Неттинг</p><p>1B160130 Обмен SWIFT-сообщениями</p><p>1B160050 Обработка входящих платежей</p><p>1B160200 Объединение сделок</p><p>1B160070 Планирование денежных потоков</p><p>1B160170 Порядок распределения обеспечения. Просмотр и установка</p><p>1B160150 Привлечение. Учет переданного обеспечения</p><p>1B160140 Размещение. Учет полученного обеспечения</p><p>1B160020 Генеральные соглашения&#160;</p><p>1B160080 Расчет процентов, комиссий и штрафов</p><p>1B160100 Реализация требований Положения N 590-П</p><p>1B160010 Сделки</p><p>1B160180 Сделки. Закрытие</p><p>1B160210 Сопряжение с FRONT Office NAVIGATOR (SoftWell)</p><p>1B160040 Стандартные платежные инструкции</p><p>1B160160 Учет полученного обеспечения для целей формирования резервов</p><p>1B160060 Формирование исходящих платежей</p><p>1B160015 Бивалютные сделки</p><p>1B160013 Импорт сделок</p><p>1B160095 Учет авансовых платежей</p><p>1B160092 Досрочное погашение по кредитным сделкам</p><p>1B160093 Досрочный возврат по депозитным сделкам</p><p>1B160083 Капитализация процентов по сделкам</p><p>1B160131 SWIFT-сообщения по сделкам формата MT210</p><p>1B160980 Учет операций по стандартам МСФО на основе Положений N 604-П и N 605-П по сделкам привлечения и размещения средств<br></p><p><br></p></div>                <div id='to_cart_container' class="to-cart" style="margin:0">
+                        <button class="btn add-to-cart" data-courseid ="212" data-learningcase="дистанционно" id="B_212" data-text="Кредиты. Привлечение и размещение средств " data-link="/courses/description?course=212&amp;product=ЦФТ-Банк">Добавить в корзину</button>
+                </div>
+            </article>
+        </section>
+    </div>
+</div>
+
+
+
+            <div id="scrollup" class="back-to-top">
+                <i></i>
+            </div>
+        </div>
+        <footer class='site-footer'>
+            <footer class="footer-top">
+                <section class="footer-wrap">
+                    <section class="tf-links clearfix">
+                        <section class="footer-links">
+                            <p><a href="/learning/type">Формы консультаций</a></p><a href="/learning/type#distance">Дистанционная</a><a href="/learning/type#fulltime">Очная</a>
+                            <p><a href="/learning">Порядок консультаций</a></p><a href="/learning#banks">Банкам</a><a href="/learning#listeners">Слушателям</a>
+                        </section>
+                        <section class="footer-links">
+                            
+                            <p><a href="/">Консультации по продуктам</a></p>
+                            <p><a href="/pages/contacts">Контакты</a></p>
+                            <p><a href="/qa">Вопросы и ответы</a></p>
+                            <p><a href="/sites/education/Documents/Politics.pdf">Политика в области обработки персональных данных</a></p>
+                            <p>
+                                <button class="cookie-settings-link">
+                                    Управление файлами cookie
+                                </button>
+                            </p>
+                        </section>
+                        <section class="contacts">
+                            <p>Следите за нами:</p>
+                            <p><a href="http://vk.com/cft_group" class="vk-icon"></a></p>
+                        </section>
+                        <section class="follow_us">
+                            <p><a href='tel:83833358088'>8 (383) 335-80-88</a></p>
+                            <p><a href='tel:83833364949'>8 (383) 336-49-49</a></p>
+                            <p><a href="mailto:educate@cft.ru" class="mailto">educate@cft.ru</a></p>
+                        </section>
+                    </section>
+                </section>
+            </footer>
+            <footer class="footer-bottom">
+                <section class="footer-wrap">
+                    <section class="bf-links"><span class="copyright">© 2026 Учебный центр ЦФТ</span></section>
+                </section>
+            </footer>
+        </footer>
+    </section>
+    
+    <script src="/Scripts/slick.js"></script>
+    <script src="/scripts/app?v=ViHeCiHabHAbIO0VZ50VfdI43sKfM6y4BlnQaoNoygU1"></script>
+
+    <script src="/Scripts/cookies-manager.js" asp-append-version="true"></script>
+    
+
+</body>
+</html>

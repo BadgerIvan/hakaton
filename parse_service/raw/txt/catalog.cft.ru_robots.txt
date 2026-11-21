@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /cookie
+Disallow: /search?q=
+Disallow: *?q=
+Disallow: *?filt
+Disallow: *?group=
+Disallow: /cart
+Disallow: /login
+Sitemap: https://catalog.cft.ru/sitemap.xml

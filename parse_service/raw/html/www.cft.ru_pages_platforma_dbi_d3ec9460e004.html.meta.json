@@ -1,0 +1,14 @@
+{
+  "source_url": "https://www.cft.ru/pages/platforma_dbi",
+  "fetch_url": "https://www.cft.ru/pages/platforma_dbi",
+  "fetched_at": "2026-11-21T06:42:54+00:00",
+  "category": "technology",
+  "vendor": "ЦФТ",
+  "language": "ru",
+  "document_id": "d3ec9460e004",
+  "source_kind": "official_public",
+  "include_in_rag": true,
+  "last_modified": null,
+  "etag": null,
+  "title": "Платформа DBI – независимость от баз данных и среды исполнения"
+}

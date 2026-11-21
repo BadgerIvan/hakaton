@@ -1,0 +1,15 @@
+{
+  "source_url": "https://catalog.cft.ru/applications/card/RTL_1CORE_10",
+  "fetch_url": "https://catalog.cft.ru/application/RTL_1CORE_10/Ru?inCu=0",
+  "fetched_at": "2026-11-21T06:44:45+00:00",
+  "category": "products",
+  "vendor": "ЦФТ",
+  "language": "ru",
+  "document_id": "715e0a1e5c83",
+  "source_kind": "official_public",
+  "include_in_rag": true,
+  "last_modified": null,
+  "etag": null,
+  "catalog_kind": "application",
+  "title": "Подсистема \"Учетное ядро\""
+}

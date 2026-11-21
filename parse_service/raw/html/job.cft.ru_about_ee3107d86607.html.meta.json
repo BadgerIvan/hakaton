@@ -1,0 +1,14 @@
+{
+  "source_url": "https://job.cft.ru/about/",
+  "fetch_url": "https://job.cft.ru/about/",
+  "fetched_at": "2026-11-21T06:42:50+00:00",
+  "category": "career",
+  "vendor": "ЦФТ",
+  "language": "ru",
+  "document_id": "ee3107d86607",
+  "source_kind": "official_public",
+  "include_in_rag": true,
+  "last_modified": null,
+  "etag": null,
+  "title": "О нас – Работа в ЦФТ"
+}
