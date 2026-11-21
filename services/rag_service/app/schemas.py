@@ -34,3 +34,16 @@ class ReindexResponse(BaseModel):
     files_indexed: int
     total_chunks: int
     files: list[DocumentInfo]
+
+class AdminFileInfo(BaseModel):
+    category: str
+    source: str
+    size_bytes: int
+    chunks: int
+    on_disk: bool
+    indexed: bool
+
+
+class UploadResponse(BaseModel):
+    uploaded: list[DocumentInfo]
+    total_chunks_added: int

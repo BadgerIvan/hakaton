@@ -9,5 +9,6 @@ FROM nginx:1.28-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY deploy/default.conf.template /etc/nginx/templates/default.conf.template
 ENV AGENT_UPSTREAM=http://backend:8000
-ENV NGINX_ENVSUBST_FILTER=^AGENT_UPSTREAM$
+ENV RAG_UPSTREAM=http://rag-service:8001
+ENV NGINX_ENVSUBST_FILTER=^(AGENT_UPSTREAM|RAG_UPSTREAM)$
 EXPOSE 80

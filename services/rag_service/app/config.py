@@ -17,14 +17,11 @@ class Settings(BaseSettings):
 
     chunk_size: int = 900
     chunk_overlap: int = 150
-    top_k: int = 4
-    score_threshold: float = 0.25
-    history_limit: int = 20
-
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-
     retrieval_k: int = 12
     top_k: int = 4
+    score_threshold: float = 0.25
+    history_limit: int = 6
+
     rerank_enabled: bool = True
     rerank_model: str = "jinaai/jina-reranker-v2-base-multilingual"
     rerank_high_threshold: float = 0.45
@@ -33,6 +30,11 @@ class Settings(BaseSettings):
 
     rewrite_enabled: bool = True
     rewrite_history_limit: int = 4
+
+    admin_token: str = "12181218"
+    max_upload_mb: int = 10
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 settings = Settings()

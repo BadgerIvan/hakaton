@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG Admin — База знаний</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #171a21;
+      --border: #262b36;
+      --text: #e6e9ef;
+      --muted: #8b93a7;
+      --accent: #4f7cff;
+      --accent-hover: #3b68eb;
+      --danger: #e05252;
+      --ok: #38b27b;
+      --warn: #e0a43b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 60px; }
+    header {
+      display: flex; flex-wrap: wrap; gap: 12px;
+      align-items: center; justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    h1 { margin: 0; font-size: 22px; font-weight: 600; }
+    .sub { color: var(--muted); font-size: 13px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 18px;
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    input[type="text"], input[type="password"] {
+      background: #101319;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 14px;
+      min-width: 240px;
+      flex: 1;
+    }
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      border-radius: 8px;
+      padding: 9px 15px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    button:hover { background: var(--accent-hover); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.secondary { background: #232834; color: var(--text); }
+    button.secondary:hover { background: #2d3444; }
+    button.danger { background: transparent; color: var(--danger); border: 1px solid #3a2327; padding: 5px 10px; font-size: 13px; }
+    button.danger:hover { background: #2a181c; }
+
+    .dropzone {
+      margin-top: 12px;
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 26px 16px;
+      text-align: center;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .dropzone.drag { border-color: var(--accent); background: rgba(79,124,255,0.08); color: var(--text); }
+    .status {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .status.show { display: block; }
+    .status.ok { background: rgba(56,178,123,0.14); border: 1px solid rgba(56,178,123,0.35); color: #7ce6b3; }
+    .status.err { background: rgba(224,82,82,0.14); border: 1px solid rgba(224,82,82,0.35); color: #f69999; }
+    .status.info { background: rgba(79,124,255,0.14); border: 1px solid rgba(79,124,255,0.35); color: #9db8ff; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 99px;
+      font-size: 12px; font-weight: 500;
+    }
+    .badge.ok { background: rgba(56,178,123,0.15); color: #7ce6b3; }
+    .badge.warn { background: rgba(224,164,59,0.15); color: #f5ca78; }
+    .empty { color: var(--muted); text-align: center; padding: 26px 0; }
+    .stats { font-size: 13px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Админ-панель базы знаний RAG</h1>
+        <div class="sub">Загрузка .txt и .md с мгновенной индексацией в Qdrant</div>
+      </div>
+      <div class="row">
+        <button class="secondary" id="refreshBtn" type="button">Обновить</button>
+        <button id="reindexBtn" type="button">Полная переиндексация</button>
+      </div>
+    </header>
+
+    <div class="status" id="statusBox"></div>
+
+    <section class="card">
+      <div class="row">
+        <input id="tokenInput" type="password" placeholder="Введите ADMIN_TOKEN" autocomplete="off" />
+        <button id="saveTokenBtn" type="button">Войти</button>
+      </div>
+    </section>
+
+    <section class="card" id="mainArea" style="display:none;">
+      <div class="row">
+        <input id="categoryInput" type="text" placeholder="Раздел / папка (например: shift или cft/products; пусто = общее)" />
+        <input id="fileInput" type="file" accept=".txt,.md" multiple hidden />
+        <button id="pickBtn" type="button">Выбрать файлы</button>
+      </div>
+      <div class="dropzone" id="dropzone">
+        Перетащите сюда <strong>.txt</strong> или <strong>.md</strong> файлы — они сохранятся в volume и сразу проиндексируются
+      </div>
+    </section>
+
+    <section class="card" id="tableCard" style="display:none;">
+      <div class="row" style="justify-content:space-between; margin-bottom:10px;">
+        <strong>Файлы в хранилище</strong>
+        <span class="stats" id="statsLabel"></span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Путь / файл</th>
+              <th>Раздел</th>
+              <th>Размер</th>
+              <th>Чанков</th>
+              <th>Статус</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="filesBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const tokenInput = document.getElementById("tokenInput");
+    const statusBox = document.getElementById("statusBox");
+    const mainArea = document.getElementById("mainArea");
+    const tableCard = document.getElementById("tableCard");
+    const filesBody = document.getElementById("filesBody");
+    const statsLabel = document.getElementById("statsLabel");
+    const categoryInput = document.getElementById("categoryInput");
+    const fileInput = document.getElementById("fileInput");
+    const dropzone = document.getElementById("dropzone");
+    const reindexBtn = document.getElementById("reindexBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+
+    let token = sessionStorage.getItem("rag_admin_token") || "";
+    if (token) tokenInput.value = token;
+
+    function showStatus(msg, type = "info") {
+      statusBox.textContent = msg;
+      statusBox.className = `status show ${type}`;
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes) return "—";
+      if (bytes < 1024) return `${bytes} Б`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} КБ`;
+      return `${(bytes / (1024 * 1024)).toFixed(2)} МБ`;
+    }
+
+    async function api(url, opts = {}) {
+      const res = await fetch(url, {
+        ...opts,
+        headers: { ...(opts.headers || {}), "X-Admin-Token": token },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+      return data;
+    }
+
+    async function loadFiles() {
+      if (!token) return;
+      try {
+        const files = await api("/api/v1/admin/files");
+        mainArea.style.display = "block";
+        tableCard.style.display = "block";
+
+        const totalChunks = files.reduce((acc, f) => acc + f.chunks, 0);
+        statsLabel.textContent = `Файлов: ${files.length} · Чанков в Qdrant: ${totalChunks}`;
+
+        if (!files.length) {
+          filesBody.innerHTML = '<tr><td colspan="6" class="empty">База пуста — загрузите первый файл выше</td></tr>';
+          return;
+        }
+
+        filesBody.innerHTML = files.map((f) => {
+          const statusBadge = f.on_disk && f.indexed
+            ? '<span class="badge ok">В индексе</span>'
+            : f.on_disk
+              ? '<span class="badge warn">Не проиндексирован</span>'
+              : '<span class="badge warn">Только в Qdrant</span>';
+          return `
+            <tr>
+              <td><code>${escapeHtml(f.source)}</code></td>
+              <td>${escapeHtml(f.category)}</td>
+              <td>${formatBytes(f.size_bytes)}</td>
+              <td>${f.chunks}</td>
+              <td>${statusBadge}</td>
+              <td style="text-align:right;">
+                <button class="danger" data-delete="${escapeHtml(f.source)}">Удалить</button>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      } catch (err) {
+        mainArea.style.display = "none";
+        tableCard.style.display = "none";
+        showStatus(err.message, "err");
+      }
+    }
+
+    async function uploadFiles(fileList) {
+      if (!fileList || !fileList.length) return;
+      const form = new FormData();
+      form.append("category", categoryInput.value.trim());
+      for (const f of fileList) form.append("files", f);
+
+      showStatus(`Загрузка и индексация (${fileList.length} файл.)…`, "info");
+      reindexBtn.disabled = true;
+      try {
+        const res = await api("/api/v1/admin/files", { method: "POST", body: form });
+        showStatus(
+          `Готово: загружено файлов ${res.uploaded.length}, добавлено чанков ${res.total_chunks_added}`,
+          "ok"
+        );
+        await loadFiles();
+      } catch (err) {
+        showStatus(err.message, "err");
+      } finally {
+        reindexBtn.disabled = false;
+        fileInput.value = "";
+      }
+    }
+
+    document.getElementById("saveTokenBtn").addEventListener("click", () => {
+      token = tokenInput.value.trim();
+      sessionStorage.setItem("rag_admin_token", token);
+      showStatus("Подключение…", "info");
+      loadFiles().then(() => {
+        if (mainArea.style.display === "block") showStatus("Токен принят", "ok");
+      });
+    });
+
+    document.getElementById("pickBtn").addEventListener("click", () => fileInput.click());
+    dropzone.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", () => uploadFiles(fileInput.files));
+
+    dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("drag"); });
+    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("drag"));
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("drag");
+      uploadFiles(e.dataTransfer.files);
+    });
+
+    filesBody.addEventListener("click", async (e) => {
+      const btn = e.target.closest("button[data-delete]");
+      if (!btn) return;
+      const src = btn.getAttribute("data-delete");
+      if (!confirm(`Удалить «${src}» с диска и из индекса Qdrant?`)) return;
+
+      showStatus(`Удаление ${src}…`, "info");
+      try {
+        await api(`/api/v1/admin/files?source=${encodeURIComponent(src)}`, { method: "DELETE" });
+        showStatus(`Файл ${src} удалён`, "ok");
+        await loadFiles();
+      } catch (err) {
+        showStatus(err.message, "err");
+      }
+    });
+
+    refreshBtn.addEventListener("click", loadFiles);
+
+    reindexBtn.addEventListener("click", async () => {
+      if (!confirm("Пересобрать всю коллекцию Qdrant с нуля?")) return;
+      showStatus("Идёт полная переиндексация…", "info");
+      reindexBtn.disabled = true;
+      try {
+        const res = await api("/api/v1/admin/reindex", { method: "POST" });
+        showStatus(
+          `Переиндексация завершена: файлов ${res.files_indexed}, чанков ${res.total_chunks}`,
+          "ok"
+        );
+        await loadFiles();
+      } catch (err) {
+        showStatus(err.message, "err");
+      } finally {
+        reindexBtn.disabled = false;
+      }
+    });
+
+    if (token) loadFiles();
+  </script>
+</body>
+</html>

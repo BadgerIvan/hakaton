@@ -64,6 +64,7 @@ services:
       dockerfile: frontend/Dockerfile
     environment:
       AGENT_UPSTREAM: http://backend:8000
+      RAG_UPSTREAM: http://rag-service:8001
     ports:
       - '8080:80'
     depends_on:
@@ -71,6 +72,8 @@ services:
         condition: service_healthy
       backend:
         condition: service_healthy
+      rag-service:
+        condition: service_started
     restart: unless-stopped
 
   ollama:
@@ -103,6 +106,7 @@ services:
       QDRANT_URL: http://qdrant:6333
       DATA_DIR: /app/data
       FASTEMBED_CACHE_PATH: /app/.fastembed_cache
+      ADMIN_TOKEN: ${RAG_ADMIN_TOKEN:-change-me-admin-token}
       LLM_MODEL: ${LLM_MODEL:-qwen3:4b}
       EMBED_MODEL: ${EMBED_MODEL:-bge-m3}
       EMBED_DIM: ${EMBED_DIM:-1024}
@@ -110,7 +114,7 @@ services:
       NUM_CTX: ${NUM_CTX:-8192}
       LLM_REASONING: 'false'
     volumes:
-      - ./services/rag_service/data:/app/data:ro
+      - rag_data:/app/data
       - fastembed_cache:/app/.fastembed_cache
     depends_on:
       ollama:
@@ -128,3 +132,5 @@ volumes:
     name: ${QDRANT_VOLUME_NAME:-partner-agent_qdrant_storage}
   fastembed_cache:
     name: ${FASTEMBED_VOLUME_NAME:-partner-agent_fastembed_cache}
+  rag_data:
+    name: ${RAG_DATA_VOLUME_NAME:-partner-agent_rag_data}

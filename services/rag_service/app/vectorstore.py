@@ -4,6 +4,9 @@ from langchain_qdrant import FastEmbedSparse, QdrantVectorStore, RetrievalMode
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import (
     Distance,
+    FieldCondition,
+    Filter,
+    MatchValue,
     Modifier,
     SparseIndexParams,
     SparseVectorParams,
@@ -68,6 +71,23 @@ def recreate_collection() -> None:
     qdrant_client.create_collection(
         collection_name=settings.qdrant_collection,
         **_collection_params(),
+    )
+
+
+def delete_document_points(source: str) -> None:
+    """Удаляет все чанки конкретного файла из Qdrant по metadata.source."""
+    ensure_collection(retries=3, delay=1.0)
+    qdrant_client.delete(
+        collection_name=settings.qdrant_collection,
+        points_selector=Filter(
+            must=[
+                FieldCondition(
+                    key="metadata.source",
+                    match=MatchValue(value=source),
+                )
+            ]
+        ),
+        wait=True,
     )
 
 

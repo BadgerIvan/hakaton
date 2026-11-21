@@ -1,4 +1,4 @@
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from langchain_core.documents import Document
 from langchain_text_splitters import (
@@ -7,8 +7,13 @@ from langchain_text_splitters import (
 )
 
 from app.config import settings
-from app.schemas import DocumentInfo, ReindexResponse
-from app.vectorstore import get_vectorstore, recreate_collection
+from app.schemas import AdminFileInfo, DocumentInfo, ReindexResponse
+from app.vectorstore import (
+    delete_document_points,
+    get_vectorstore,
+    list_documents,
+    recreate_collection,
+)
 
 BATCH_SIZE = 64
 ALLOWED_EXTENSIONS = {".txt", ".md"}
@@ -29,8 +34,7 @@ md_header_splitter = MarkdownHeaderTextSplitter(
 )
 
 
-def _read_text_file(path: Path) -> str:
-    raw = path.read_bytes()
+def _decode_bytes(raw: bytes) -> str:
     for encoding in ("utf-8-sig", "cp1251"):
         try:
             return raw.decode(encoding).strip()
@@ -39,8 +43,49 @@ def _read_text_file(path: Path) -> str:
     return raw.decode("utf-8", errors="ignore").strip()
 
 
+def _read_text_file(path: Path) -> str:
+    return _decode_bytes(path.read_bytes())
+
+
 def _is_hidden(rel_path: Path) -> bool:
     return any(part.startswith(".") for part in rel_path.parts)
+
+
+def _ensure_root(data_dir: str | None = None) -> Path:
+    root = Path(data_dir or settings.data_dir).resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def _sanitize_rel_path(category: str, filename: str) -> PurePosixPath:
+    clean_name = Path(filename.replace("\\", "/")).name.strip()
+    if not clean_name or clean_name.startswith("."):
+        raise ValueError(f"Некорректное имя файла: {filename}")
+
+    ext = Path(clean_name).suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise ValueError(f"Формат {ext or 'без расширения'} не поддерживается (разрешены .txt и .md)")
+
+    raw_cat = category.replace("\\", "/").strip().strip("/")
+    parts: list[str] = []
+    if raw_cat and raw_cat != "общее":
+        for part in raw_cat.split("/"):
+            part = part.strip()
+            if not part or part in (".", "..") or part.startswith("."):
+                raise ValueError(f"Некорректный путь категории: {category}")
+            parts.append(part)
+
+    return PurePosixPath(*parts, clean_name)
+
+
+def _resolve_safe(root: Path, rel_source: str) -> Path:
+    rel = PurePosixPath(rel_source.replace("\\", "/").lstrip("/"))
+    if not rel.parts or any(p in ("", ".", "..") or p.startswith(".") for p in rel.parts):
+        raise ValueError(f"Некорректный путь файла: {rel_source}")
+    target = (root / Path(*rel.parts)).resolve()
+    if not target.is_relative_to(root):
+        raise ValueError("Выход за пределы каталога хранения запрещён")
+    return target
 
 
 def _split_file(
@@ -103,10 +148,122 @@ def _split_file(
     return chunks
 
 
+def _build_chunks_for_path(path: Path, root: Path) -> tuple[str, str, list[Document]]:
+    text = _read_text_file(path)
+    rel_path = path.relative_to(root)
+    rel_source = rel_path.as_posix()
+    category = rel_path.parent.as_posix() if rel_path.parent != Path(".") else "общее"
+    if not text:
+        return category, rel_source, []
+
+    doc_title = path.stem.replace("_", " ").replace("-", " ")
+    chunks = _split_file(
+        text=text,
+        ext=path.suffix.lower(),
+        category=category,
+        rel_source=rel_source,
+        filename=path.name,
+        doc_title=doc_title,
+    )
+    return category, rel_source, chunks
+
+
+def save_and_index_file(
+    filename: str,
+    raw_bytes: bytes,
+    category: str = "",
+    data_dir: str | None = None,
+) -> DocumentInfo:
+    max_bytes = settings.max_upload_mb * 1024 * 1024
+    if len(raw_bytes) > max_bytes:
+        raise ValueError(f"Файл {filename} превышает лимит {settings.max_upload_mb} МБ")
+
+    text_preview = _decode_bytes(raw_bytes)
+    if not text_preview:
+        raise ValueError(f"Файл {filename} пуст")
+
+    root = _ensure_root(data_dir)
+    rel_posix = _sanitize_rel_path(category, filename)
+    target = _resolve_safe(root, rel_posix.as_posix())
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(raw_bytes)
+
+    resolved_category, rel_source, chunks = _build_chunks_for_path(target, root)
+    if not chunks:
+        target.unlink(missing_ok=True)
+        raise ValueError(f"Не удалось извлечь текст из файла {filename}")
+
+    delete_document_points(rel_source)
+    store = get_vectorstore()
+    for i in range(0, len(chunks), BATCH_SIZE):
+        store.add_documents(chunks[i : i + BATCH_SIZE])
+
+    return DocumentInfo(
+        category=resolved_category,
+        source=rel_source,
+        chunks=len(chunks),
+    )
+
+
+def delete_file_and_vectors(source: str, data_dir: str | None = None) -> None:
+    root = _ensure_root(data_dir)
+    target = _resolve_safe(root, source)
+    rel_source = target.relative_to(root).as_posix()
+
+    if target.exists() and target.is_file():
+        target.unlink()
+        parent = target.parent
+        while parent != root:
+            try:
+                parent.rmdir()
+                parent = parent.parent
+            except OSError:
+                break
+
+    delete_document_points(rel_source)
+
+
+def list_storage_files(data_dir: str | None = None) -> list[AdminFileInfo]:
+    root = _ensure_root(data_dir)
+    indexed_map = {doc.source: doc for doc in list_documents()}
+
+    disk_files: dict[str, tuple[str, int]] = {}
+    for path in sorted(root.rglob("*")):
+        if (
+            path.is_file()
+            and path.suffix.lower() in ALLOWED_EXTENSIONS
+            and not _is_hidden(path.relative_to(root))
+        ):
+            rel_path = path.relative_to(root)
+            rel_source = rel_path.as_posix()
+            category = rel_path.parent.as_posix() if rel_path.parent != Path(".") else "общее"
+            disk_files[rel_source] = (category, path.stat().st_size)
+
+    all_sources = sorted(set(disk_files.keys()) | set(indexed_map.keys()))
+    result: list[AdminFileInfo] = []
+
+    for src in all_sources:
+        on_disk = src in disk_files
+        indexed_doc = indexed_map.get(src)
+        category = disk_files[src][0] if on_disk else indexed_doc.category
+        size_bytes = disk_files[src][1] if on_disk else 0
+        chunks = indexed_doc.chunks if indexed_doc else 0
+        result.append(
+            AdminFileInfo(
+                category=category,
+                source=src,
+                size_bytes=size_bytes,
+                chunks=chunks,
+                on_disk=on_disk,
+                indexed=chunks > 0,
+            )
+        )
+
+    return result
+
+
 def index_dataset(data_dir: str | None = None) -> ReindexResponse:
-    root = Path(data_dir or settings.data_dir)
-    if not root.exists() or not root.is_dir():
-        raise ValueError(f"Папка датасета не найдена: {root}")
+    root = _ensure_root(data_dir)
 
     dataset_files = sorted(
         path
@@ -116,30 +273,20 @@ def index_dataset(data_dir: str | None = None) -> ReindexResponse:
         and not _is_hidden(path.relative_to(root))
     )
     if not dataset_files:
-        raise ValueError(f"В папке {root} и её подпапках нет ни одного .txt или .md файла")
+        recreate_collection()
+        return ReindexResponse(
+            folders_found=0,
+            files_indexed=0,
+            total_chunks=0,
+            files=[],
+        )
 
     all_chunks: list[Document] = []
     file_stats: list[DocumentInfo] = []
     folders_seen: set[str] = set()
 
     for path in dataset_files:
-        text = _read_text_file(path)
-        if not text:
-            continue
-
-        rel_path = path.relative_to(root)
-        rel_source = rel_path.as_posix()
-        category = rel_path.parent.as_posix() if rel_path.parent != Path(".") else "общее"
-        doc_title = path.stem.replace("_", " ").replace("-", " ")
-
-        file_chunks = _split_file(
-            text=text,
-            ext=path.suffix.lower(),
-            category=category,
-            rel_source=rel_source,
-            filename=path.name,
-            doc_title=doc_title,
-        )
+        category, rel_source, file_chunks = _build_chunks_for_path(path, root)
         if not file_chunks:
             continue
 
