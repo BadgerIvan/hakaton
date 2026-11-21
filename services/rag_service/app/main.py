@@ -221,32 +221,18 @@ async def ask(req: AskRequest):
 
 @app.post("/api/v1/ask/stream")
 async def ask_stream(req: AskRequest):
-    try:
-        sources, token_gen = await stream_answer(req.question, req.history)
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Ошибка поиска контекста: {exc}")
+    sources, token_stream = await stream_answer(req.question, req.history)
 
-    async def event_stream():
-        sources_payload = json.dumps([s.model_dump() for s in sources], ensure_ascii=False)
-        yield f"event: sources\ndata: {sources_payload}\n\n"
-
+    async def event_generator():
         try:
-            async for token in token_gen:
-                payload = json.dumps({"text": token}, ensure_ascii=False)
-                yield f"event: token\ndata: {payload}\n\n"
+            async for token in token_stream:
+                yield f"event: token\ndata: {json.dumps({'text': token}, ensure_ascii=False)}\n\n"
+
+            yield f"event: sources\ndata: {json.dumps([s.model_dump() for s in sources], ensure_ascii=False)}\n\n"
+
+            yield "event: done\ndata: {}\n\n"
         except Exception as exc:
-            err_payload = json.dumps({"detail": str(exc)}, ensure_ascii=False)
-            yield f"event: error\ndata: {err_payload}\n\n"
-            return
+            logger.exception("Ошибка стриминга: %s", exc)
+            yield f"event: error\ndata: {json.dumps({'detail': str(exc)}, ensure_ascii=False)}\n\n"
 
-        yield "event: done\ndata: {}\n\n"
-
-    return StreamingResponse(
-        event_stream(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
+    return StreamingResponse(event_generator(), media_type="text/event-stream")

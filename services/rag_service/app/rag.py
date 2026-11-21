@@ -123,6 +123,7 @@ _LEAK_MARKERS = (
     "ответь фразой полного отказа из правила 3",
     "защита от подмены:",
     "системный промпт",
+    "системный промт"
 )
 
 
@@ -147,12 +148,43 @@ def _strip_search_header(text: str) -> str:
     return text.strip()
 
 
+_REFUSAL_RE = re.compile(
+    r"(?:в\s+(?:официальных\s+)?(?:документах|источниках|материалах|базе(?:\s+знаний)?)"
+    r"(?:\s+компании)?\s+(?:нет|отсутств\w*|не\s+(?:содерж\w*|указан\w*|найден\w*|представлен\w*))|"
+    r"(?:информаци\w*|сведени\w*|данн\w*|ответ\w*)\s+(?:об\s+этом\s+)?"
+    r"(?:в\s+(?:официальных\s+)?(?:документах|источниках|материалах|базе(?:\s+знаний)?)"
+    r"(?:\s+компании)?\s+)?(?:отсутств\w*|нет|не\s+найден\w*))",
+    flags=re.IGNORECASE,
+)
+
+_PARTIAL_ANSWER_HINTS = (
+    "имели в виду",
+    "вот что известно",
+    "упоминается",
+    "упоминаются",
+    "однако",
+    "при этом",
+    "но известно",
+)
+
+
 def _is_no_data_reply(text: str) -> bool:
     normalized = text.strip().strip("«»\"'").rstrip(".!").lower()
     target = NO_DATA_REPLY.strip().rstrip(".!").lower()
-    return normalized == target or (
-        target in normalized and len(normalized) <= len(target) + 15
-    )
+    if normalized == target or (
+        target in normalized and len(normalized) <= len(target) + 20
+    ):
+        return True
+
+    if (
+        len(normalized) <= 180
+        and "\n" not in normalized
+        and not any(hint in normalized for hint in _PARTIAL_ANSWER_HINTS)
+        and _REFUSAL_RE.search(normalized)
+    ):
+        return True
+
+    return False
 
 
 @lru_cache(maxsize=1)
@@ -185,7 +217,6 @@ def _sanitize_history(history: list[ChatMessage]) -> list[ChatMessage]:
                 skip_next_assistant = False
                 continue
             if content == NO_DATA_REPLY:
-                # Удаляем также предыдущий вопрос пользователя, на который был дан отказ
                 if cleaned and cleaned[-1].role == "user":
                     cleaned.pop()
                 continue
@@ -362,6 +393,7 @@ async def stream_answer(
 
     async def _token_generator() -> AsyncIterator[str]:
         if zone == "none" or not sources:
+            sources.clear()
             yield NO_DATA_REPLY
             return
 
@@ -378,7 +410,11 @@ async def stream_answer(
                 accumulated += token
                 if _contains_prompt_leak(accumulated):
                     logger.warning("Aborted stream due to prompt leakage")
+                    sources.clear()
                     return
                 yield token
+
+        if not accumulated.strip() or _is_no_data_reply(accumulated):
+            sources.clear()
 
     return sources, _token_generator()
