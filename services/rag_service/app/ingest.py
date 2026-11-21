@@ -17,6 +17,8 @@ from app.vectorstore import (
     recreate_collection,
 )
 
+from datetime import date, datetime, timezone
+
 BATCH_SIZE = 64
 ALLOWED_EXTENSIONS = {".txt", ".md"}
 
@@ -70,7 +72,6 @@ def _parse_yaml_block(block: str) -> dict:
     except yaml.YAMLError:
         pass
 
-    # Fallback на случай неэкранированных двоеточий внутри title
     result: dict[str, str] = {}
     for line in block.splitlines():
         if ":" not in line or line.startswith((" ", "\t", "-")):
@@ -89,8 +90,7 @@ def _extract_frontmatter(text: str) -> tuple[dict, str]:
         meta = _parse_yaml_block(match.group(1))
         body = text[match.end() :].strip()
         return meta, body
-
-    # Если шапка идёт в начале файла без разделителей --- до первой пустой строки
+    
     parts = re.split(r"\r?\n\r?\n", text, maxsplit=1)
     if len(parts) == 2 and any(marker in parts[0] for marker in _HEADER_MARKERS):
         meta = _parse_yaml_block(parts[0])
@@ -100,13 +100,58 @@ def _extract_frontmatter(text: str) -> tuple[dict, str]:
     return {}, text.strip()
 
 
-def _clean_meta_str(value: object) -> str | None:
-    if value is None:
+_FETCHED_AT_KEYS = (
+    "fetched_at",
+    "date_parsed",
+    "parsed_at",
+    "scraped_at",
+    "retrieved_at",
+    "downloaded_at",
+)
+_PUBLISHED_AT_KEYS = (
+    "published_at",
+    "date_published",
+    "published",
+    "last_modified",
+    "updated_at",
+    "date",
+)
+_VERSION_KEYS = (
+    "version",
+    "doc_version",
+    "edition",
+    "revision",
+    "release",
+)
+_PAGE_KEYS = (
+    "page",
+    "page_number",
+    "section",
+)
+
+
+def _clean_meta_value(raw: object) -> str | None:
+    if isinstance(raw, datetime):
+        return raw.isoformat(timespec="seconds")
+    if isinstance(raw, date):
+        return raw.isoformat()
+    return _clean_meta_str(raw)
+
+
+def _first_meta_str(meta: dict, keys: tuple[str, ...]) -> str | None:
+    for key in keys:
+        val = _clean_meta_value(meta.get(key))
+        if val:
+            return val
+    return None
+
+def _clean_meta_str(raw: object) -> str | None:
+    if raw is None:
         return None
-    text = str(value).strip()
-    if not text or text.lower() in ("null", "none"):
+    val = str(raw).strip()
+    if not val or val.lower() in ("null", "none"):
         return None
-    return text
+    return val
 
 
 def _is_hidden(rel_path: Path) -> bool:
@@ -215,36 +260,55 @@ def _split_file(
     return chunks
 
 
-def _build_chunks_for_path(path: Path, root: Path) -> tuple[str, str, list[Document]]:
-    raw_text = _read_text_file(path)
-    rel_path = path.relative_to(root)
+def _build_chunks_for_path(
+    file_path: Path,
+    base_dir: Path,
+) -> tuple[str, str, list[Document]]:
+    rel_path = file_path.relative_to(base_dir)
     rel_source = rel_path.as_posix()
-    folder_category = rel_path.parent.as_posix() if rel_path.parent != Path(".") else "общее"
+    folder_category = (
+        rel_path.parent.as_posix() if rel_path.parent != Path(".") else "общее"
+    )
+
+    raw_text = _decode_bytes(file_path.read_bytes())
     if not raw_text:
         return folder_category, rel_source, []
 
-    frontmatter, body = _extract_frontmatter(raw_text)
-    if not body:
-        return folder_category, rel_source, []
+    meta, body = _extract_frontmatter(raw_text)
+    category = _clean_meta_str(meta.get("category")) or folder_category
+    if not body.strip():
+        return category, rel_source, []
 
-    category = _clean_meta_str(frontmatter.get("category")) or folder_category
     doc_title = (
-        _clean_meta_str(frontmatter.get("title"))
-        or path.stem.replace("_", " ").replace("-", " ")
+        _clean_meta_str(meta.get("title"))
+        or file_path.stem.replace("_", " ").replace("-", " ").strip()
     )
-    source_url = _clean_meta_str(
-        frontmatter.get("source_url") or frontmatter.get("fetch_url")
-    )
+    source_url = _first_meta_str(meta, ("source_url", "fetch_url", "url"))
+
+    fetched_at = _first_meta_str(meta, _FETCHED_AT_KEYS) or datetime.fromtimestamp(
+        file_path.stat().st_mtime, tz=timezone.utc
+    ).strftime("%Y-%m-%d")
+    published_at = _first_meta_str(meta, _PUBLISHED_AT_KEYS)
+    version = _first_meta_str(meta, _VERSION_KEYS)
+    page_or_section = _first_meta_str(meta, _PAGE_KEYS)
 
     chunks = _split_file(
         text=body,
-        ext=path.suffix.lower(),
+        ext=file_path.suffix.lower(),
         category=category,
         rel_source=rel_source,
-        filename=path.name,
+        filename=file_path.name,
         doc_title=doc_title,
         source_url=source_url,
     )
+
+    for chunk in chunks:
+        chunk.metadata["fetched_at"] = fetched_at
+        chunk.metadata["published_at"] = published_at
+        chunk.metadata["version"] = version
+        if page_or_section:
+            chunk.metadata["page"] = page_or_section
+
     return category, rel_source, chunks
 
 
