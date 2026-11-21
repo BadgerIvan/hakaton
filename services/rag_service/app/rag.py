@@ -93,29 +93,6 @@ rewrite_chain = REWRITE_PROMPT | rewrite_llm
 
 _THINK_RE = re.compile(r"<think>.*?</think>", flags=re.DOTALL)
 
-_INJECTION_PATTERNS = (
-    re.compile(
-        r"(?:^|\n)\s*(?:контекст|документы?|база\s+знаний|система|system|assistant|инструкция|правила)\s*:",
-        flags=re.IGNORECASE,
-    ),
-    re.compile(
-        r"(?:забудь|игнорируй|отмени|не\s+выполняй)\s+(?:все\s+)?(?:предыдущ\w+\s+|выш\w+\s+)?(?:инструкц\w*|правил\w*|ограничен\w*|промпт\w*)",
-        flags=re.IGNORECASE,
-    ),
-    re.compile(
-        r"(?:раскрой|покажи|выведи|повтори|переведи|напиши)\s+(?:свой\s+|весь\s+|все\s+)?(?:системн\w+\s+промпт|исходн\w+\s+промпт|инструкц\w*\s+выше|правил\w*\s+выше)",
-        flags=re.IGNORECASE,
-    ),
-    re.compile(
-        r"(?:смени|измени|прими)\s+(?:свою\s+)?роль|ты\s+теперь\s+(?:не\s+помощник|другой|свободн)|режим\s+отладк",
-        flags=re.IGNORECASE,
-    ),
-    re.compile(
-        r"ignore\s+(?:all\s+)?(?:previous|above)\s+(?:instructions?|rules?|prompts?)|system\s*prompt|developer\s*mode|jailbreak",
-        flags=re.IGNORECASE,
-    ),
-)
-
 _LEAK_MARKERS = (
     "начало официальных документов",
     "конец официальных документов",
@@ -126,9 +103,104 @@ _LEAK_MARKERS = (
     "системный промт"
 )
 
+_FAKE_HEADER_RE = re.compile(
+    r"^\s*(?:контекст|документы?|база\s+знаний|система|system|assistant|инструкция|новое\s+правило)\s*:",
+    flags=re.IGNORECASE,
+)
+
+_DIRECTIVE_INJECTION_PATTERNS = (
+    re.compile(
+        r"(?:забудь|игнорируй|отмени|обойди|не\s+выполняй|не\s+соблюдай)\s+"
+        r"(?:все\s+|сво[йяие]\s+|предыдущ\w+\s+|выш\w+\s+|системн\w+\s+|эти\s+){0,4}"
+        r"(?:инструкц\w*|правил\w*|ограничен\w*|пром(?:п)?т\w*|указан\w*)",
+        flags=re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:раскрой|покажи|выведи|повтори|переведи|напиши|назови|перескажи)\s+"
+        r"(?:мне\s+|сво[йяие]\s+|весь\s+|все\s+|текст\s+){0,3}"
+        r"(?:системн\w+\s+пром(?:п)?т\w*|исходн\w+\s+пром(?:п)?т\w*|скрыт\w+\s+инструкц\w*|"
+        r"инструкц\w*\s+выше|правил\w*\s+выше|пункт\w*\s+правил)",
+        flags=re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:смени|измени|прими)\s+(?:свою\s+)?роль|"
+        r"переключись\s+в\s+режим\s+(?:отладк\w*|аудит\w*|админ\w*|разработчик\w*)|"
+        r"включи\s+режим\s+(?:отладк\w*|аудит\w*|админ\w*)|"
+        r"ты\s+теперь\s+(?:не\s+помощник|другой|свободн\w*|админ\w*)|"
+        r"подтверждаю\s+полномочия|"
+        r"(?:покажи|выведи|дай)\s+историю\s+(?:сообщений\s+)?(?:другого|предыдущего|чужого)\s+пользователя",
+        flags=re.IGNORECASE,
+    ),
+    re.compile(
+        r"ignore\s+(?:all\s+)?(?:previous|above)\s+(?:instructions?|rules?|prompts?)|"
+        r"(?:reveal|show|print|output|repeat)\s+(?:your\s+|the\s+)?system\s*prompt|"
+        r"(?:enable|enter|switch\s+to)\s+(?:developer|debug|admin|jailbreak)\s*mode",
+        flags=re.IGNORECASE,
+    ),
+)
+
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+_TRAILING_FILLER_RE = re.compile(
+    r"(?:[\s,;:\-—]+|\b(?:и|а|но|кстати|теперь|потом|ещё|еще|также)\b)+$",
+    flags=re.IGNORECASE,
+)
+_MEANINGFUL_CHARS_RE = re.compile(r"[0-9A-Za-zА-Яа-яЁё]")
+
+
+def _sanitize_user_query(text: str) -> tuple[str, bool]:
+    """Удаляет атакующие фрагменты, сохраняя легитимную часть запроса.
+
+    Возвращает (очищенный_текст, была_ли_инъекция).
+    """
+    had_injection = False
+    clean_lines: list[str] = []
+
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+
+        if _FAKE_HEADER_RE.match(line):
+            had_injection = True
+            continue
+
+        kept_sentences: list[str] = []
+        for sentence in _SENTENCE_SPLIT_RE.split(line):
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+
+            if _FAKE_HEADER_RE.match(sentence):
+                had_injection = True
+                continue
+
+            earliest_match = None
+            for pattern in _DIRECTIVE_INJECTION_PATTERNS:
+                match = pattern.search(sentence)
+                if match and (earliest_match is None or match.start() < earliest_match.start()):
+                    earliest_match = match
+
+            if earliest_match is None:
+                kept_sentences.append(sentence)
+                continue
+
+            had_injection = True
+            prefix = _TRAILING_FILLER_RE.sub("", sentence[: earliest_match.start()]).strip()
+            if len(_MEANINGFUL_CHARS_RE.findall(prefix)) >= 6:
+                kept_sentences.append(prefix)
+
+        if kept_sentences:
+            clean_lines.append(" ".join(kept_sentences))
+
+    cleaned = " ".join(clean_lines).strip()
+    if len(_MEANINGFUL_CHARS_RE.findall(cleaned)) < 3:
+        return "", had_injection
+    return cleaned, had_injection
+
 
 def _is_injection_attempt(text: str) -> bool:
-    return any(pattern.search(text) for pattern in _INJECTION_PATTERNS)
+    _, had_injection = _sanitize_user_query(text)
+    return had_injection
 
 
 def _contains_prompt_leak(text: str) -> bool:
@@ -197,7 +269,7 @@ def get_reranker() -> TextCrossEncoder:
 
 
 def _sanitize_history(history: list[ChatMessage]) -> list[ChatMessage]:
-    """Удаляет из истории отклонённые ответы (NO_DATA_REPLY) и реплики с инъекциями."""
+    """Удаляет из истории отклонённые ответы (NO_DATA_REPLY) и вырезает инъекции."""
     cleaned: list[ChatMessage] = []
     skip_next_assistant = False
 
@@ -207,16 +279,19 @@ def _sanitize_history(history: list[ChatMessage]) -> list[ChatMessage]:
             continue
 
         if msg.role == "user":
-            if _is_injection_attempt(content):
+            clean_content, had_injection = _sanitize_user_query(content)
+            if not clean_content:
                 skip_next_assistant = True
                 continue
             skip_next_assistant = False
-            cleaned.append(msg)
+            cleaned.append(
+                ChatMessage(role="user", content=clean_content) if had_injection else msg
+            )
         else:
             if skip_next_assistant:
                 skip_next_assistant = False
                 continue
-            if content == NO_DATA_REPLY:
+            if _is_no_data_reply(content):
                 if cleaned and cleaned[-1].role == "user":
                     cleaned.pop()
                 continue
@@ -269,11 +344,18 @@ async def retrieve_context(
     question: str,
     history: list[ChatMessage],
 ) -> tuple[str, list[SourceChunk], MatchZone, str]:
-    if _is_injection_attempt(question):
-        logger.warning("Blocked prompt injection attempt: %r", question[:200])
-        return "", [], "none", question
+    clean_question, had_injection = _sanitize_user_query(question)
+    if had_injection:
+        if not clean_question:
+            logger.warning("Blocked pure prompt injection: %r", question[:200])
+            return "", [], "none", question
+        logger.warning(
+            "Sanitized hybrid prompt injection: %r -> %r",
+            question[:200],
+            clean_question[:200],
+        )
 
-    search_query = await rewrite_query(question, history)
+    search_query = await rewrite_query(clean_question, history)
 
     store = get_vectorstore()
     fetch_k = settings.retrieval_k if settings.rerank_enabled else settings.top_k
