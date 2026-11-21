@@ -1,0 +1,37 @@
+services:
+  auth:
+    build:
+      context: .
+      dockerfile: auth_service/Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////app/data/auth.db}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    ports:
+      - "127.0.0.1:8002:8002"
+    volumes:
+      - auth_data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      AGENT_UPSTREAM: ${AGENT_UPSTREAM:-http://host.docker.internal:8000}
+    ports:
+      - "8080:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      auth:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  auth_data:
