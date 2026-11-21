@@ -13,13 +13,13 @@ class Settings(BaseSettings):
     embed_dim: int = 1024
     sparse_model: str = "Qdrant/bm25"
     bm25_language: str = "russian"
-    num_ctx: int = 4096
+    num_ctx: int = 8192
 
     chunk_size: int = 900
     chunk_overlap: int = 150
     top_k: int = 4
     score_threshold: float = 0.25
-    history_limit: int = 4
+    history_limit: int = 20
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

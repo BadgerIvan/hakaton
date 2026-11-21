@@ -26,7 +26,8 @@ export interface Message {
   content: string;
   sources: Source[];
   status: MessageStatus;
-  error?: string;
+  error?: string | null;
+  request_id?: string;
 }
 
 export interface Conversation {
@@ -34,9 +35,4 @@ export interface Conversation {
   title: string;
   updatedAt: number;
   messages: Message[];
-}
-
-export interface HistoryMessage {
-  role: "user" | "assistant";
-  content: string;
 }

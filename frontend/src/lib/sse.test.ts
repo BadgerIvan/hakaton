@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { SSEDecoder, streamAnswer } from "./sse";
-import { safeSourceUrl } from "./api";
-import { buildHistory } from "./history";
-import type { Message, Source } from "../types";
+import { chatApi, safeSourceUrl } from "./api";
+import type { Source } from "../types";
 
 test("SSE preserves CRLF across chunks, ignores comments and combines multiline data", () => {
   const parser = new SSEDecoder();
@@ -20,6 +19,7 @@ test("stream consumes the supplied contract even with byte-by-byte UTF-8 deliver
     globalThis.fetch = previousFetch;
   });
   const events =
+    'event: meta\ndata: {"conversation_id":"chat-1"}\n\n' +
     'event: sources\ndata: [{"doc_id":"abc123","source":"reglament.pdf","page":4,"score":0.78}]\n\n' +
     'event: token\ndata: {"text":"Заявление "}\n\n' +
     'event: token\ndata: {"text":"подаётся за 14 дней."}\n\n' +
@@ -41,10 +41,12 @@ test("stream consumes the supplied contract even with byte-by-byte UTF-8 deliver
   };
   let answer = "";
   let sources: Source[] = [];
-  const history = [{ role: "user" as const, content: "Предыдущий вопрос" }];
+  const conversationId = "chat-1";
+  const requestId = "request-1";
   await streamAnswer({
     question: "За сколько дней?",
-    history,
+    conversationId,
+    requestId,
     csrf: "test-csrf",
     signal: new AbortController().signal,
     onSources: (value) => {
@@ -54,7 +56,7 @@ test("stream consumes the supplied contract even with byte-by-byte UTF-8 deliver
       answer += value;
     },
   });
-  assert.deepEqual(body, { question: "За сколько дней?", history });
+  assert.deepEqual(body, { question: "За сколько дней?", conversation_id: conversationId, request_id: requestId });
   assert.equal(answer, "Заявление подаётся за 14 дней.");
   assert.equal(sources[0].page, 4);
 });
@@ -71,7 +73,8 @@ test("an interrupted stream remains an error instead of a completed answer", asy
   await assert.rejects(
     streamAnswer({
       question: "Вопрос",
-      history: [],
+      conversationId: "chat-1",
+      requestId: "request-1",
       csrf: "",
       signal: new AbortController().signal,
       onSources: () => {},
@@ -81,24 +84,24 @@ test("an interrupted stream remains an error instead of a completed answer", asy
   );
 });
 
-test("failed answer pairs do not leak into subsequent model history", () => {
-  const message = (
-    role: Message["role"],
-    content: string,
-    status: Message["status"] = "complete",
-  ): Message => ({ id: content, role, content, status, sources: [] });
-  assert.deepEqual(
-    buildHistory([
-      message("user", "Первый"),
-      message("assistant", "Верный ответ"),
-      message("user", "Второй"),
-      message("assistant", "Оборванный текст", "error"),
-    ]),
-    [
-      { role: "user", content: "Первый" },
-      { role: "assistant", content: "Верный ответ" },
-    ],
-  );
+test("conversation API loads server history and sends cookies and CSRF on deletion", async (context) => {
+  const previousFetch = globalThis.fetch;
+  context.after(() => { globalThis.fetch = previousFetch; });
+  const calls: { url: string; options: RequestInit | undefined }[] = [];
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url: String(url), options });
+    if (options?.method === "DELETE") return new Response(null, { status: 204 });
+    if (String(url).includes("?limit="))
+      return Response.json([{ id: "chat-1", title: "Сохранённый", updatedAt: 123 }]);
+    return Response.json({ id: "chat-1", title: "Сохранённый", updatedAt: 123,
+      messages: [{ id: "answer-1", role: "assistant", content: "Ответ из БД", sources: [], status: "complete" }] });
+  };
+  assert.equal((await chatApi.list())[0].title, "Сохранённый");
+  assert.equal((await chatApi.get("chat-1")).messages[0].content, "Ответ из БД");
+  await chatApi.remove("chat-1", "csrf-token");
+  assert.equal(calls.at(-1)?.options?.method, "DELETE");
+  assert.equal(calls.at(-1)?.options?.credentials, "include");
+  assert.equal(new Headers(calls.at(-1)?.options?.headers).get("X-CSRF-Token"), "csrf-token");
 });
 
 test("source links reject executable and relative URLs", () => {

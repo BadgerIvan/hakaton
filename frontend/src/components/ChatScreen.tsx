@@ -24,8 +24,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useAuth } from "../auth";
 import type { AuthSession, Conversation, Message, Source } from "../types";
-import { ApiError, errorMessage, safeSourceUrl } from "../lib/api";
-import { buildHistory, loadConversations, storageKey } from "../lib/history";
+import { ApiError, chatApi, errorMessage, safeSourceUrl } from "../lib/api";
 import { streamAnswer } from "../lib/sse";
 
 const suggestions = [
@@ -184,9 +183,11 @@ function Answer({
 
 export function ChatScreen({ session }: { session: AuthSession }) {
   const auth = useAuth();
-  const [chats, setChats] = useState<Conversation[]>(() =>
-    loadConversations(session.user.id),
-  );
+  const [chats, setChats] = useState<Conversation[]>([]);
+  const [loadingChat, setLoadingChat] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+  const opening = useRef(0);
+  const cancellation = useRef<Promise<void>>(Promise.resolve());
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -205,17 +206,15 @@ export function ChatScreen({ session }: { session: AuthSession }) {
   const messages = current?.messages || [];
 
   useEffect(() => {
-    try {
-      sessionStorage.setItem(
-        storageKey(session.user.id),
-        JSON.stringify(chats),
-      );
-    } catch {
-      setNotice(
-        "Память браузера заполнена. История этого разговора может не сохраниться после обновления страницы.",
-      );
-    }
-  }, [chats, session.user.id]);
+    const controller = new AbortController();
+    setLoadingHistory(true);
+    chatApi.list(controller.signal).then(setChats).catch((error) => {
+      if (!controller.signal.aborted) setNotice(errorMessage(error));
+    }).finally(() => {
+      if (!controller.signal.aborted) setLoadingHistory(false);
+    });
+    return () => controller.abort();
+  }, [session.user.id]);
 
   useEffect(() => () => active.current?.controller.abort(), []);
   useEffect(() => {
@@ -235,6 +234,17 @@ export function ChatScreen({ session }: { session: AuthSession }) {
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
   }, []);
+
+  useEffect(() => {
+    if (!currentId || streaming || !messages.some((message) => message.status === "streaming")) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      chatApi.get(currentId, controller.signal).then((chat) => {
+        setChats((previous) => previous.map((item) => item.id === chat.id ? chat : item));
+      }).catch(() => undefined);
+    }, 1500);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [currentId, streaming, messages]);
 
   const updateMessage = useCallback(
     (
@@ -259,13 +269,18 @@ export function ChatScreen({ session }: { session: AuthSession }) {
   );
 
   function stop() {
-    active.current?.controller.abort();
+    const request = active.current;
+    request?.controller.abort();
+    if (request?.chatId)
+      cancellation.current = chatApi.cancel(request.chatId, request.messageId, session.csrf_token).catch(() => undefined);
     active.current = null;
     setStreaming(false);
   }
 
   function newChat() {
     stop();
+    opening.current += 1;
+    setLoadingChat(false);
     setCurrentId(null);
     setDraft("");
     setMobileOpen(false);
@@ -273,98 +288,93 @@ export function ChatScreen({ session }: { session: AuthSession }) {
     textarea.current?.focus();
   }
 
-  function openChat(id: string) {
+  async function openChat(id: string) {
     stop();
+    const ticket = ++opening.current;
     setCurrentId(id);
     setDraft("");
     setMobileOpen(false);
+    setLoadingChat(true);
     autoScroll.current = true;
+    try {
+      const chat = await chatApi.get(id);
+      if (ticket === opening.current)
+        setChats((previous) => previous.map((item) => item.id === id ? chat : item));
+    } catch (error) {
+      if (ticket === opening.current) setNotice(errorMessage(error));
+    } finally {
+      if (ticket === opening.current) setLoadingChat(false);
+    }
   }
 
-  function deleteChat(chat: Conversation) {
+  async function deleteChat(chat: Conversation) {
     if (!window.confirm(`Удалить диалог «${chat.title}»?`)) return;
     if (active.current?.chatId === chat.id) stop();
-    setChats((previous) => previous.filter((item) => item.id !== chat.id));
-    if (currentId === chat.id) setCurrentId(null);
+    try {
+      await chatApi.remove(chat.id, session.csrf_token);
+      setChats((previous) => previous.filter((item) => item.id !== chat.id));
+      if (currentId === chat.id) newChat();
+    } catch (error) {
+      setNotice(errorMessage(error));
+    }
   }
 
-  async function send(question: string, retry = false) {
+  async function send(question: string) {
     question = question.trim();
-    if (!question || active.current) return;
-    const chatId = currentId || crypto.randomUUID();
-    const previousMessages = retry ? messages.slice(0, -2) : messages;
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: question,
-      sources: [],
-      status: "complete",
-    };
-    const assistantMessage: Message = {
-      id: crypto.randomUUID(),
-      role: "assistant",
-      content: "",
-      sources: [],
-      status: "streaming",
-    };
-    const next: Conversation = {
-      id: chatId,
-      title: current?.title || question.slice(0, 62),
-      updatedAt: Date.now(),
-      messages: [...previousMessages, userMessage, assistantMessage],
-    };
-    setChats((previous) => [
-      next,
-      ...previous.filter((chat) => chat.id !== chatId),
-    ]);
-    setCurrentId(chatId);
-    setDraft("");
-    setNotice("");
-    autoScroll.current = true;
+    if (!question || active.current || loadingChat || loadingHistory) return;
     const request = {
       controller: new AbortController(),
-      messageId: assistantMessage.id,
-      chatId,
+      messageId: crypto.randomUUID(),
+      chatId: currentId || "",
     };
     active.current = request;
     setStreaming(true);
+    setNotice("");
+    let chatId = request.chatId;
     let content = "";
     try {
+      await cancellation.current;
+      if (request.controller.signal.aborted) return;
+      const chat = current || await chatApi.create(question.slice(0, 62), session.csrf_token, request.controller.signal);
+      if (request.controller.signal.aborted) return;
+      chatId = chat.id;
+      request.chatId = chatId;
+      const userMessage: Message = {
+        id: crypto.randomUUID(), role: "user", content: question, sources: [], status: "complete",
+      };
+      const assistantMessage: Message = {
+        id: request.messageId, request_id: request.messageId,
+        role: "assistant", content: "", sources: [], status: "streaming",
+      };
+      setChats((previous) => [
+        { ...chat, updatedAt: Date.now(), messages: [...chat.messages, userMessage, assistantMessage] },
+        ...previous.filter((item) => item.id !== chatId),
+      ]);
+      setCurrentId(chatId);
+      setDraft("");
+      autoScroll.current = true;
       await streamAnswer({
         question,
-        history: buildHistory(previousMessages),
+        conversationId: chatId,
+        requestId: request.messageId,
         csrf: session.csrf_token,
         signal: request.controller.signal,
-        onSources: (sources) =>
-          updateMessage(chatId, assistantMessage.id, (message) => ({
-            ...message,
-            sources,
-          })),
+        onSources: (sources) => updateMessage(chatId, request.messageId, (message) => ({ ...message, sources })),
         onToken: (text) => {
           content += text;
-          updateMessage(chatId, assistantMessage.id, (message) => ({
-            ...message,
-            content: message.content + text,
-          }));
+          updateMessage(chatId, request.messageId, (message) => ({ ...message, content: message.content + text }));
         },
       });
-      if (!content.trim())
-        throw new ApiError(
-          "Агент завершил запрос без текста ответа. Попробуйте ещё раз.",
-          502,
-        );
-      updateMessage(chatId, assistantMessage.id, (message) => ({
-        ...message,
-        status: "complete",
-      }));
+      if (!content.trim()) throw new ApiError("Агент завершил запрос без текста ответа. Попробуйте ещё раз.", 502);
+      updateMessage(chatId, request.messageId, (message) => ({ ...message, status: "complete" }));
     } catch (error) {
-      updateMessage(chatId, assistantMessage.id, (message) => ({
+      if (chatId) updateMessage(chatId, request.messageId, (message) => ({
         ...message,
         status: request.controller.signal.aborted ? "cancelled" : "error",
         error: errorMessage(error),
       }));
-      if (error instanceof ApiError && error.status === 401)
-        void auth.restore();
+      if (!request.controller.signal.aborted) setNotice(errorMessage(error));
+      if (error instanceof ApiError && error.status === 401) void auth.restore();
     } finally {
       if (active.current === request) {
         active.current = null;
@@ -394,7 +404,6 @@ export function ChatScreen({ session }: { session: AuthSession }) {
     setLoggingOut(true);
     try {
       await auth.logout();
-      sessionStorage.removeItem(storageKey(session.user.id));
     } catch (error) {
       setNotice(errorMessage(error));
     } finally {
@@ -437,7 +446,8 @@ export function ChatScreen({ session }: { session: AuthSession }) {
         </button>
         <div className="history-heading">Ваши диалоги</div>
         <nav className="chat-history" aria-label="История диалогов">
-          {chats.length === 0 && (
+          {loadingHistory && <p className="history-empty" role="status">Загружаем диалоги…</p>}
+          {!loadingHistory && chats.length === 0 && (
             <p className="history-empty">Здесь появятся ваши разговоры</p>
           )}
           {chats.map((chat) => (
@@ -448,7 +458,7 @@ export function ChatScreen({ session }: { session: AuthSession }) {
               <button
                 className="history-link"
                 type="button"
-                onClick={() => openChat(chat.id)}
+                onClick={() => void openChat(chat.id)}
                 title={chat.title}
                 aria-current={chat.id === currentId ? "page" : undefined}
               >
@@ -458,7 +468,7 @@ export function ChatScreen({ session }: { session: AuthSession }) {
               <button
                 className="history-delete"
                 type="button"
-                onClick={() => deleteChat(chat)}
+                onClick={() => void deleteChat(chat)}
                 aria-label={`Удалить диалог ${chat.title}`}
               >
                 <Trash2 size={15} />
@@ -533,7 +543,9 @@ export function ChatScreen({ session }: { session: AuthSession }) {
                 160;
           }}
         >
-          {messages.length === 0 ? (
+          {loadingChat ? (
+            <p className="history-empty" role="status">Загружаем сообщения…</p>
+          ) : messages.length === 0 ? (
             <section className="welcome">
               <div className="welcome-symbol" aria-hidden="true">
                 <MessageSquare size={34} strokeWidth={1.6} />
@@ -579,7 +591,7 @@ export function ChatScreen({ session }: { session: AuthSession }) {
                     last={index === messages.length - 1}
                     retry={() => {
                       const question = messages[index - 1];
-                      if (question) void send(question.content, true);
+                      if (question) void send(question.content);
                     }}
                   />
                 ),
@@ -616,7 +628,7 @@ export function ChatScreen({ session }: { session: AuthSession }) {
                 <button
                   className="send-button"
                   type="submit"
-                  disabled={!draft.trim()}
+                  disabled={!draft.trim() || loadingChat || loadingHistory}
                   aria-label="Отправить вопрос"
                 >
                   <Send size={19} />

@@ -1,21 +1,61 @@
+name: partner-agent
+
+x-app-environment: &app-environment
+  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-partner}:${POSTGRES_PASSWORD:-partner_local_password}@postgres:5432/${POSTGRES_DB:-partner}
+  ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173,http://127.0.0.1:5173}
+
 services:
-  auth:
-    build:
-      context: .
-      dockerfile: auth_service/Dockerfile
+  postgres:
+    image: postgres:16-alpine
     environment:
-      DATABASE_URL: ${DATABASE_URL:-sqlite:////app/data/auth.db}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
-      COOKIE_SECURE: ${COOKIE_SECURE:-false}
-    ports:
-      - "127.0.0.1:8002:8002"
+      POSTGRES_DB: ${POSTGRES_DB:-partner}
+      POSTGRES_USER: ${POSTGRES_USER:-partner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-partner_local_password}
     volumes:
-      - auth_data:/app/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health')"]
+      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  auth:
+    build: ./services/auth_service
+    environment:
+      <<: *app-environment
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health')"]
       interval: 10s
       timeout: 3s
-      retries: 5
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build: ./services/backend_service
+    environment:
+      <<: *app-environment
+      AUTH_URL: http://auth:8002
+      RAG_URL: http://rag-service:8001
+      HISTORY_TURNS: ${HISTORY_TURNS:-10}
+      HISTORY_MAX_CHARS: ${HISTORY_MAX_CHARS:-12000}
+      GENERATION_TIMEOUT: ${GENERATION_TIMEOUT:-110}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+      rag-service:
+        condition: service_started
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
     restart: unless-stopped
 
   frontend:
@@ -23,15 +63,64 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
     environment:
-      AGENT_UPSTREAM: ${AGENT_UPSTREAM:-http://host.docker.internal:8000}
+      AGENT_UPSTREAM: http://backend:8000
     ports:
-      - "8080:80"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - '8080:80'
     depends_on:
       auth:
         condition: service_healthy
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_FLASH_ATTENTION: '1'
+      OLLAMA_KV_CACHE_TYPE: q8_0
+      OLLAMA_MAX_LOADED_MODELS: '2'
+      OLLAMA_KEEP_ALIVE: 10m
+      OLLAMA_NUM_PARALLEL: '1'
+    volumes:
+      - ollama_models:/root/.ollama
+    healthcheck:
+      test: [CMD, ollama, list]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:v1.13.4
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    restart: unless-stopped
+
+  rag-service:
+    build: ./services/rag_service
+    environment:
+      OLLAMA_URL: http://ollama:11434
+      QDRANT_URL: http://qdrant:6333
+      DATA_DIR: /app/data
+      LLM_MODEL: ${LLM_MODEL:-qwen3:4b}
+      EMBED_MODEL: ${EMBED_MODEL:-bge-m3}
+      EMBED_DIM: ${EMBED_DIM:-1024}
+      HISTORY_LIMIT: ${RAG_HISTORY_LIMIT:-20}
+      NUM_CTX: ${NUM_CTX:-8192}
+      LLM_REASONING: 'false'
+    volumes:
+      - ./services/rag_service/data:/app/data:ro
+    depends_on:
+      ollama:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
     restart: unless-stopped
 
 volumes:
-  auth_data:
+  postgres_data:
+    name: ${POSTGRES_VOLUME_NAME:-partner-agent_postgres_data}
+  ollama_models:
+    name: ${OLLAMA_VOLUME_NAME:-partner-agent_ollama_models}
+  qdrant_storage:
+    name: ${QDRANT_VOLUME_NAME:-partner-agent_qdrant_storage}
