@@ -21,7 +21,6 @@ qdrant_client = QdrantClient(url=settings.qdrant_url)
 embedder = OllamaEmbeddings(
     model=settings.embed_model,
     base_url=settings.ollama_url,
-    num_gpu=0,
 )
 
 sparse_embedder = FastEmbedSparse(
