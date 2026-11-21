@@ -3,15 +3,17 @@ import json
 from contextlib import asynccontextmanager
 
 import httpx
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from app.config import settings
-from app.ingest import index_file
+from app.ingest import index_dataset
 from app.rag import generate_answer, stream_answer
-from app.schemas import AskRequest, AskResponse, DocumentInfo, UploadResponse
-from app.vectorstore import delete_by_doc_id, ensure_collection, list_documents, qdrant_client
+from app.schemas import AskRequest, AskResponse, DocumentInfo, ReindexResponse
+from app.vectorstore import ensure_collection, list_documents, qdrant_client
+
+reindex_lock = asyncio.Lock()
 
 
 @asynccontextmanager
@@ -77,29 +79,21 @@ async def get_documents():
     return await asyncio.to_thread(list_documents)
 
 
-@app.post("/api/v1/documents", response_model=UploadResponse)
-async def upload_document(
-    file: UploadFile = File(...),
-    doc_id: str | None = Form(default=None),
-):
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="Имя файла отсутствует")
+@app.post("/api/v1/reindex", response_model=ReindexResponse)
+async def reindex():
+    if reindex_lock.locked():
+        raise HTTPException(status_code=409, detail="Индексация уже выполняется")
 
-    file_bytes = await file.read()
-    try:
-        saved_id, chunks = await asyncio.to_thread(index_file, file_bytes, file.filename, doc_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Ошибка индексации (проверьте модель {settings.embed_model}): {exc}")
-
-    return UploadResponse(doc_id=saved_id, filename=file.filename, chunks=chunks)
-
-
-@app.delete("/api/v1/documents/{doc_id}")
-async def delete_document(doc_id: str):
-    await asyncio.to_thread(delete_by_doc_id, doc_id)
-    return {"deleted": True, "doc_id": doc_id}
+    async with reindex_lock:
+        try:
+            return await asyncio.to_thread(index_dataset)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        except Exception as exc:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Ошибка индексации (проверьте модель {settings.embed_model}): {exc}",
+            )
 
 
 @app.post("/api/v1/ask", response_model=AskResponse)

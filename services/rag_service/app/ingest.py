@@ -1,14 +1,13 @@
-from io import BytesIO
 from pathlib import Path
-from uuid import uuid4
 
-import docx
-import fitz  # PyMuPDF
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.config import settings
-from app.vectorstore import delete_by_doc_id, get_vectorstore
+from app.schemas import DocumentInfo, ReindexResponse
+from app.vectorstore import get_vectorstore, recreate_collection
+
+BATCH_SIZE = 64
 
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=settings.chunk_size,
@@ -17,65 +16,51 @@ splitter = RecursiveCharacterTextSplitter(
 )
 
 
-def _extract_documents(file_bytes: bytes, filename: str, doc_id: str) -> list[Document]:
-    ext = Path(filename).suffix.lower()
-    raw_docs: list[Document] = []
-
-    if ext == ".pdf":
-        with fitz.open(stream=file_bytes, filetype="pdf") as pdf:
-            for page_num, page in enumerate(pdf, start=1):
-                text = page.get_text("text").strip()
-                if text:
-                    raw_docs.append(
-                        Document(
-                            page_content=text,
-                            metadata={"doc_id": doc_id, "source": filename, "page": page_num},
-                        )
-                    )
-    elif ext == ".docx":
-        document = docx.Document(BytesIO(file_bytes))
-        blocks = [p.text.strip() for p in document.paragraphs if p.text.strip()]
-        for table in document.tables:
-            for row in table.rows:
-                cells = [c.text.strip() for c in row.cells if c.text.strip()]
-                if cells:
-                    blocks.append(" | ".join(cells))
-        text = "\n".join(blocks)
-        if text:
-            raw_docs.append(
-                Document(
-                    page_content=text,
-                    metadata={"doc_id": doc_id, "source": filename, "page": None},
-                )
-            )
-    elif ext in {".txt", ".md"}:
-        text = file_bytes.decode("utf-8", errors="ignore").strip()
-        if text:
-            raw_docs.append(
-                Document(
-                    page_content=text,
-                    metadata={"doc_id": doc_id, "source": filename, "page": None},
-                )
-            )
-    else:
-        raise ValueError(f"Формат '{ext}' не поддерживается. Допустимы: .pdf, .docx, .txt, .md")
-
-    return raw_docs
+def _read_text_file(path: Path) -> str:
+    raw = path.read_bytes()
+    for encoding in ("utf-8-sig", "cp1251"):
+        try:
+            return raw.decode(encoding).strip()
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("utf-8", errors="ignore").strip()
 
 
-def index_file(file_bytes: bytes, filename: str, doc_id: str | None = None) -> tuple[str, int]:
-    doc_id = doc_id or str(uuid4())
-    raw_docs = _extract_documents(file_bytes, filename, doc_id)
-    if not raw_docs:
-        raise ValueError(
-            "Не удалось извлечь текст из файла (возможно, файл пуст или это PDF-скан без текстового слоя)."
-        )
+def index_dataset(data_dir: str | None = None) -> ReindexResponse:
+    root = Path(data_dir or settings.data_dir)
+    if not root.exists() or not root.is_dir():
+        raise ValueError(f"Папка датасета не найдена: {root}")
 
-    chunks = splitter.split_documents(raw_docs)
+    txt_files = sorted(root.rglob("*.txt"))
+    if not txt_files:
+        raise ValueError(f"В папке {root} нет ни одного .txt файла")
 
-    # При повторной загрузке с тем же doc_id старые чанки удаляются
-    delete_by_doc_id(doc_id)
+    all_chunks: list[Document] = []
+    file_stats: list[DocumentInfo] = []
 
+    for path in txt_files:
+        text = _read_text_file(path)
+        if not text:
+            continue
+
+        rel_source = path.relative_to(root).as_posix()
+        doc = Document(page_content=text, metadata={"source": rel_source})
+        chunks = splitter.split_documents([doc])
+
+        all_chunks.extend(chunks)
+        file_stats.append(DocumentInfo(source=rel_source, chunks=len(chunks)))
+
+    if not all_chunks:
+        raise ValueError("Все найденные .txt файлы оказались пустыми")
+
+    recreate_collection()
     store = get_vectorstore()
-    store.add_documents(chunks)
-    return doc_id, len(chunks)
+
+    for i in range(0, len(all_chunks), BATCH_SIZE):
+        store.add_documents(all_chunks[i : i + BATCH_SIZE])
+
+    return ReindexResponse(
+        files_indexed=len(file_stats),
+        total_chunks=len(all_chunks),
+        files=file_stats,
+    )

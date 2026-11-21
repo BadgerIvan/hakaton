@@ -13,9 +13,7 @@ class AskRequest(BaseModel):
 
 
 class SourceChunk(BaseModel):
-    doc_id: str
     source: str
-    page: int | None = None
     score: float
 
 
@@ -24,13 +22,12 @@ class AskResponse(BaseModel):
     sources: list[SourceChunk]
 
 
-class UploadResponse(BaseModel):
-    doc_id: str
-    filename: str
-    chunks: int
-
-
 class DocumentInfo(BaseModel):
-    doc_id: str
-    filename: str
+    source: str
     chunks: int
+
+
+class ReindexResponse(BaseModel):
+    files_indexed: int
+    total_chunks: int
+    files: list[DocumentInfo]
