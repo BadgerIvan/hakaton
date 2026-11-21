@@ -1,20 +1,50 @@
 import time
 from langchain_ollama import OllamaEmbeddings
-from langchain_qdrant import QdrantVectorStore, RetrievalMode
+from langchain_qdrant import FastEmbedSparse, QdrantVectorStore, RetrievalMode
 from qdrant_client import QdrantClient
-from qdrant_client.http.models import Distance, VectorParams
+from qdrant_client.http.models import (
+    Distance,
+    Modifier,
+    SparseIndexParams,
+    SparseVectorParams,
+    VectorParams,
+)
 
 from app.config import settings
 from app.schemas import DocumentInfo
 
+DENSE_VECTOR_NAME = "dense"
+SPARSE_VECTOR_NAME = "sparse"
+
 qdrant_client = QdrantClient(url=settings.qdrant_url)
 
-# Эмбеддер принудительно на CPU, чтобы оставить 6 ГБ VRAM целиком под qwen3:4b
 embedder = OllamaEmbeddings(
     model=settings.embed_model,
     base_url=settings.ollama_url,
     num_gpu=0,
 )
+
+sparse_embedder = FastEmbedSparse(
+    model_name=settings.sparse_model,
+    language=settings.bm25_language,
+)
+
+
+def _collection_params() -> dict:
+    return {
+        "vectors_config": {
+            DENSE_VECTOR_NAME: VectorParams(
+                size=settings.embed_dim,
+                distance=Distance.COSINE,
+            )
+        },
+        "sparse_vectors_config": {
+            SPARSE_VECTOR_NAME: SparseVectorParams(
+                index=SparseIndexParams(on_disk=False),
+                modifier=Modifier.IDF,
+            )
+        },
+    }
 
 
 def ensure_collection(retries: int = 15, delay: float = 2.0) -> None:
@@ -24,10 +54,7 @@ def ensure_collection(retries: int = 15, delay: float = 2.0) -> None:
             if not qdrant_client.collection_exists(settings.qdrant_collection):
                 qdrant_client.create_collection(
                     collection_name=settings.qdrant_collection,
-                    vectors_config=VectorParams(
-                        size=settings.embed_dim,
-                        distance=Distance.COSINE,
-                    ),
+                    **_collection_params(),
                 )
             return
         except Exception as exc:
@@ -41,10 +68,7 @@ def recreate_collection() -> None:
         qdrant_client.delete_collection(settings.qdrant_collection)
     qdrant_client.create_collection(
         collection_name=settings.qdrant_collection,
-        vectors_config=VectorParams(
-            size=settings.embed_dim,
-            distance=Distance.COSINE,
-        ),
+        **_collection_params(),
     )
 
 
@@ -54,7 +78,10 @@ def get_vectorstore() -> QdrantVectorStore:
         client=qdrant_client,
         collection_name=settings.qdrant_collection,
         embedding=embedder,
-        retrieval_mode=RetrievalMode.DENSE,
+        sparse_embedding=sparse_embedder,
+        retrieval_mode=RetrievalMode.HYBRID,
+        vector_name=DENSE_VECTOR_NAME,
+        sparse_vector_name=SPARSE_VECTOR_NAME,
     )
 
 
