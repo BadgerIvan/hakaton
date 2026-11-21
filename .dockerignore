@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/__pycache__
+**/*.pyc
+**/*.tsbuildinfo
+.venv
+.git
+.env
+**/.env
+data
+**/data
+**/*.db
