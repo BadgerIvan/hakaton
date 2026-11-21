@@ -1,0 +1,10 @@
+User-agent: *
+Disallow: /*?*
+Disallow: /*&*
+Disallow: *utm*
+Disallow: *ppc*
+Disallow: *null*
+Disallow: *?search=
+Disallow: *?form=
+Sitemap: https://job.cft.ru/sitemap.xml
+Sitemap: https://job.cft.ru/sitemapvacancies.xml

@@ -1,0 +1,14 @@
+{
+  "source_url": "https://www.cft.ru/platforms",
+  "fetch_url": "https://www.cft.ru/platforms",
+  "fetched_at": "2026-11-21T06:42:42+00:00",
+  "category": "technology",
+  "vendor": "ЦФТ",
+  "language": "ru",
+  "document_id": "3dd4da898180",
+  "source_kind": "official_public",
+  "include_in_rag": true,
+  "last_modified": null,
+  "etag": null,
+  "title": "Программное обеспечение. Архитектура и платформы"
+}

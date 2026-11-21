@@ -1,0 +1,14 @@
+{
+  "source_url": "https://www.cft.ru/services",
+  "fetch_url": "https://www.cft.ru/services",
+  "fetched_at": "2026-11-21T06:42:42+00:00",
+  "category": "services",
+  "vendor": "ЦФТ",
+  "language": "ru",
+  "document_id": "b21fb2f6f934",
+  "source_kind": "official_public",
+  "include_in_rag": true,
+  "last_modified": null,
+  "etag": null,
+  "title": "Программное обеспечение. Услуги"
+}

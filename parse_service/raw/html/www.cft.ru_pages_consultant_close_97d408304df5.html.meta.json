@@ -1,0 +1,14 @@
+{
+  "source_url": "https://www.cft.ru/pages/consultant_close",
+  "fetch_url": "https://www.cft.ru/pages/consultant_close",
+  "fetched_at": "2026-11-21T06:43:06+00:00",
+  "category": "company",
+  "vendor": "ЦФТ",
+  "language": "ru",
+  "document_id": "97d408304df5",
+  "source_kind": "official_public",
+  "include_in_rag": true,
+  "last_modified": null,
+  "etag": null,
+  "title": "Консультации по закрытию месяца"
+}

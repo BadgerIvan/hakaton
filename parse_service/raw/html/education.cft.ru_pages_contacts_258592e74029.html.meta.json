@@ -1,0 +1,14 @@
+{
+  "source_url": "https://education.cft.ru/pages/contacts",
+  "fetch_url": "https://education.cft.ru/pages/contacts",
+  "fetched_at": "2026-11-21T06:42:50+00:00",
+  "category": "education",
+  "vendor": "ЦФТ",
+  "language": "ru",
+  "document_id": "258592e74029",
+  "source_kind": "official_public",
+  "include_in_rag": true,
+  "last_modified": null,
+  "etag": null,
+  "title": "Контакты"
+}

@@ -1,0 +1,14 @@
+{
+  "source_url": "https://www.cft.ru/pages/valuation",
+  "fetch_url": "https://www.cft.ru/pages/valuation",
+  "fetched_at": "2026-11-21T06:43:02+00:00",
+  "category": "company",
+  "vendor": "ЦФТ",
+  "language": "ru",
+  "document_id": "6e6a96caba09",
+  "source_kind": "official_public",
+  "include_in_rag": true,
+  "last_modified": null,
+  "etag": null,
+  "title": "Оценка качества исходных данных"
+}

@@ -1,0 +1,15 @@
+{
+  "source_url": "https://catalog.cft.ru/applications/cicd/overview",
+  "fetch_url": "https://catalog.cft.ru/bankinfo/cicd/3/Ru",
+  "fetched_at": "2026-11-21T06:44:20+00:00",
+  "category": "products",
+  "vendor": "ЦФТ",
+  "language": "ru",
+  "document_id": "97d84d419c82",
+  "source_kind": "official_public",
+  "include_in_rag": true,
+  "last_modified": null,
+  "etag": null,
+  "catalog_kind": "overview",
+  "title": "ЦФТ-CI/CD (Платформа развития)"
+}

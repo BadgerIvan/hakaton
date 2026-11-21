@@ -1,0 +1,14 @@
+{
+  "source_url": "https://education.cft.ru/pages/tarrifs",
+  "fetch_url": "https://education.cft.ru/pages/tarrifs",
+  "fetched_at": "2026-11-21T06:42:49+00:00",
+  "category": "education",
+  "vendor": "ЦФТ",
+  "language": "ru",
+  "document_id": "57ac4af05fc6",
+  "source_kind": "official_public",
+  "include_in_rag": true,
+  "last_modified": null,
+  "etag": null,
+  "title": "Тарифы"
+}

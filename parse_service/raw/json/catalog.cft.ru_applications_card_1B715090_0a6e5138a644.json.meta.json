@@ -1,0 +1,15 @@
+{
+  "source_url": "https://catalog.cft.ru/applications/card/1B715090",
+  "fetch_url": "https://catalog.cft.ru/application/1B715090/Ru?inCu=0",
+  "fetched_at": "2026-11-21T06:45:01+00:00",
+  "category": "products",
+  "vendor": "ЦФТ",
+  "language": "ru",
+  "document_id": "0a6e5138a644",
+  "source_kind": "official_public",
+  "include_in_rag": true,
+  "last_modified": null,
+  "etag": null,
+  "catalog_kind": "application",
+  "title": "Управление лимитами"
+}

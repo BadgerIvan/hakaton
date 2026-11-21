@@ -1,0 +1,14 @@
+{
+  "source_url": "https://www.cft.ru/pages/support_processing",
+  "fetch_url": "https://www.cft.ru/pages/support_processing",
+  "fetched_at": "2026-11-21T06:43:10+00:00",
+  "category": "services",
+  "vendor": "ЦФТ",
+  "language": "ru",
+  "document_id": "31fe4adfa545",
+  "source_kind": "official_public",
+  "include_in_rag": true,
+  "last_modified": null,
+  "etag": null,
+  "title": "Сопровождение ПО для процессинговых сервисов"
+}
