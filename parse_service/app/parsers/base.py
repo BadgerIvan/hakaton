@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -10,6 +10,7 @@ class ParseResult:
     markdown: str
     title: str | None = None
     pages: int | None = None
+    warnings: list[str] = field(default_factory=list)
 
 
 class BaseParser(ABC):
