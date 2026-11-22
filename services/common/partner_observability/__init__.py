@@ -8,7 +8,11 @@ import sys
 import time
 import traceback
 from datetime import datetime, timezone
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from uuid import uuid4
+
+from .logs import LOG_BACKUPS, MAX_LOG_BYTES, SERVICES
 
 _request_id = contextvars.ContextVar('request_id', default='-')
 _VALID_ID = re.compile(r'^[a-zA-Z0-9._-]{1,64}$')
@@ -54,8 +58,21 @@ def configure_logging(service):
     for old in list(root.handlers):
         if getattr(old, '_partner_logging', False):
             root.removeHandler(old)
+            old.close()
     handler._partner_logging = True
     root.addHandler(handler)
+    directory = os.getenv('LOG_DIR')
+    if directory:
+        if service not in SERVICES:
+            raise ValueError('Unknown log service')
+        Path(directory).mkdir(parents=True, exist_ok=True)
+        file_handler = RotatingFileHandler(
+            Path(directory) / f'{service}.jsonl', maxBytes=MAX_LOG_BYTES,
+            backupCount=LOG_BACKUPS, encoding='utf-8',
+        )
+        file_handler.setFormatter(JsonFormatter(service))
+        file_handler._partner_logging = True
+        root.addHandler(file_handler)
     root.setLevel(getattr(logging, os.getenv('LOG_LEVEL', 'INFO').upper(), logging.INFO))
     for name in ('httpx', 'httpcore', 'ollama', 'multipart', 'python_multipart', 'sqlalchemy.engine'):
         logging.getLogger(name).setLevel(logging.WARNING)
@@ -116,7 +133,7 @@ class RequestLogMiddleware:
             route = scope.get('route')
             path = getattr(route, 'path', None) or ('/health' if scope.get('path') == '/health' else '<unmatched>')
             level = logging.ERROR if status >= 500 else logging.WARNING if status >= 400 else logging.INFO
-            if path == '/health' and status < 400:
+            if path in ('/health', '/api/v1/admin/logs') and status < 400:
                 level = logging.DEBUG
             self.log.log(level, 'http.request', extra={'method': scope['method'], 'path': path,
                 'status': status, 'duration_ms': round((time.monotonic() - start) * 1000, 2),

@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir /opt/partner-observability -r requirements.txt
 
 COPY services/rag_service/app ./app
 COPY services/rag_service/reindex.py ./reindex.py
-RUN mkdir -p /app/data
+RUN mkdir -p /app/data /app/logs && chown 10001:10001 /app/logs
 
 EXPOSE 8001
 

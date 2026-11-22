@@ -1,16 +1,19 @@
 import asyncio
 import json
 import logging
+import os
 import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Literal
 
 import httpx
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from partner_observability import RequestLogMiddleware, configure_logging, propagate_request_id
+from partner_observability.logs import read_recent_logs
 
 configure_logging("rag")
 logger = logging.getLogger(__name__)
@@ -112,6 +115,24 @@ async def health():
 @app.get("/admin", include_in_schema=False)
 async def admin_page():
     return FileResponse(ADMIN_HTML_PATH)
+
+
+@app.get("/api/v1/admin/logs", dependencies=[Depends(verify_admin)])
+async def admin_logs(
+    service: Literal["auth", "backend", "rag"] | None = None,
+    level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "DEBUG",
+    search: str = Query(default="", max_length=200),
+    limit: int = Query(default=200, ge=1, le=1000),
+):
+    try:
+        payload = await asyncio.to_thread(
+            read_recent_logs, os.getenv("LOG_DIR"),
+            service=service, level=level, search=search, limit=limit,
+        )
+    except OSError:
+        logger.exception("admin.logs_unavailable")
+        raise HTTPException(status_code=503, detail="Не удалось прочитать журнал сервисов") from None
+    return JSONResponse(payload, headers={"Cache-Control": "no-store"})
 
 
 @app.get(

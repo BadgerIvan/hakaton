@@ -87,3 +87,31 @@ def test_sources_are_sent_after_tokens_and_before_done(client,monkeypatch):
     response=client.post('/api/v1/ask/stream',json={'question':'Go','history':[]})
     assert response.text.index('event: token')<response.text.index('event: sources')<response.text.index('event: done')
     assert response.headers['X-Accel-Buffering']=='no'
+
+
+def test_admin_logs_require_token_and_validate_filters(client):
+    assert client.get('/api/v1/admin/logs').status_code == 401
+    headers = {'X-Admin-Token': 'test-admin-secret'}
+    for query in ('service=../../etc/passwd', 'level=UNKNOWN', 'limit=1001', 'limit=0', 'search=' + 'x' * 201):
+        assert client.get('/api/v1/admin/logs?' + query, headers=headers).status_code == 422
+
+
+def test_admin_logs_are_filtered_sorted_and_not_cached(client, monkeypatch, tmp_path):
+    import json
+    monkeypatch.setenv('LOG_DIR', str(tmp_path))
+    records = [
+        {'timestamp': '2026-11-22T12:00:00.000+00:00', 'service': 'backend', 'level': 'INFO', 'event': 'http.request'},
+        {'timestamp': '2026-11-22T12:00:01.000+00:00', 'service': 'backend', 'level': 'ERROR', 'event': 'generation.failed', 'request_id': 'trace-42'},
+    ]
+    (tmp_path/'backend.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in records))
+    response = client.get('/api/v1/admin/logs?service=backend&level=ERROR&search=trace-42', headers={'X-Admin-Token': 'test-admin-secret'})
+    assert response.status_code == 200
+    assert response.headers['cache-control'] == 'no-store'
+    assert response.json()['entries'] == [records[1]]
+
+
+def test_admin_log_read_failures_are_sanitized(client, monkeypatch):
+    monkeypatch.setattr(main, 'read_recent_logs', Mock(side_effect=PermissionError('/private/directory')))
+    response = client.get('/api/v1/admin/logs', headers={'X-Admin-Token': 'test-admin-secret'})
+    assert response.status_code == 503
+    assert 'private' not in response.text

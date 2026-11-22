@@ -8,7 +8,7 @@ COPY services/backend_service/app ./app
 COPY services/backend_service/alembic.ini ./
 COPY services/backend_service/migrations ./migrations
 COPY services/backend_service/entrypoint.sh ./entrypoint.sh
-RUN sed -i 's/\r$//' entrypoint.sh && chmod +x entrypoint.sh && chown -R appuser:appuser /app
+RUN sed -i 's/\r$//' entrypoint.sh && chmod +x entrypoint.sh && mkdir -p /app/logs && chown -R appuser:appuser /app
 USER appuser
 EXPOSE 8000
 ENTRYPOINT ["./entrypoint.sh"]

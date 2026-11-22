@@ -3,329 +3,318 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RAG Admin — База знаний</title>
+  <meta name="color-scheme" content="light" />
+  <title>Администрирование — Partner Agent · ЦФТ / ШИФТ</title>
   <style>
-    :root {
-      --bg: #0f1115;
-      --card: #171a21;
-      --border: #262b36;
-      --text: #e6e9ef;
-      --muted: #8b93a7;
-      --accent: #4f7cff;
-      --accent-hover: #3b68eb;
-      --danger: #e05252;
-      --ok: #38b27b;
-      --warn: #e0a43b;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
-    }
-    .wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 60px; }
-    header {
-      display: flex; flex-wrap: wrap; gap: 12px;
-      align-items: center; justify-content: space-between;
-      margin-bottom: 24px;
-    }
-    h1 { margin: 0; font-size: 22px; font-weight: 600; }
-    .sub { color: var(--muted); font-size: 13px; }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 18px 20px;
-      margin-bottom: 18px;
-    }
-    .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-    input[type="text"], input[type="password"] {
-      background: #101319;
-      border: 1px solid var(--border);
-      color: var(--text);
-      border-radius: 8px;
-      padding: 9px 12px;
-      font-size: 14px;
-      min-width: 240px;
-      flex: 1;
-    }
-    button {
-      background: var(--accent);
-      color: #fff;
-      border: 0;
-      border-radius: 8px;
-      padding: 9px 15px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-    }
-    button:hover { background: var(--accent-hover); }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    button.secondary { background: #232834; color: var(--text); }
-    button.secondary:hover { background: #2d3444; }
-    button.danger { background: transparent; color: var(--danger); border: 1px solid #3a2327; padding: 5px 10px; font-size: 13px; }
-    button.danger:hover { background: #2a181c; }
-
-    .dropzone {
-      margin-top: 12px;
-      border: 2px dashed var(--border);
-      border-radius: 10px;
-      padding: 26px 16px;
-      text-align: center;
-      color: var(--muted);
-      cursor: pointer;
-      transition: border-color .15s, background .15s;
-    }
-    .dropzone.drag { border-color: var(--accent); background: rgba(79,124,255,0.08); color: var(--text); }
-    .status {
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 14px;
-      margin-bottom: 16px;
-      display: none;
-    }
-    .status.show { display: block; }
-    .status.ok { background: rgba(56,178,123,0.14); border: 1px solid rgba(56,178,123,0.35); color: #7ce6b3; }
-    .status.err { background: rgba(224,82,82,0.14); border: 1px solid rgba(224,82,82,0.35); color: #f69999; }
-    .status.info { background: rgba(79,124,255,0.14); border: 1px solid rgba(79,124,255,0.35); color: #9db8ff; }
-
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
-    th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-    .badge {
-      display: inline-block; padding: 2px 8px; border-radius: 99px;
-      font-size: 12px; font-weight: 500;
-    }
-    .badge.ok { background: rgba(56,178,123,0.15); color: #7ce6b3; }
-    .badge.warn { background: rgba(224,164,59,0.15); color: #f5ca78; }
-    .empty { color: var(--muted); text-align: center; padding: 26px 0; }
-    .stats { font-size: 13px; color: var(--muted); }
+    :root{font-family:"Golos Text","Segoe UI",Arial,sans-serif;color:#25262c;background:#f7f7f9;font-synthesis:none;--red:#eb002c;--muted:#737680;--line:#e9e9ee;--green:#137c57}
+    *{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button,a,input,select{ -webkit-tap-highlight-color:transparent}button,a{touch-action:manipulation}button{cursor:pointer}button:disabled{cursor:wait;opacity:.5}a{color:inherit;text-decoration:none}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #ed7e94;outline-offset:3px}button,input,select{border-radius:9px}button{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;padding:10px 15px;min-height:42px;background:var(--red);color:white;font-weight:600;font-size:13px;transition:background .15s}button:hover{background:#cf0027}.secondary{background:white;border-color:var(--line);color:#3e4048}.secondary:hover{background:#f2f2f6}.quiet{background:transparent;color:#686b75;padding:8px}.quiet:hover{background:#f1f1f5;color:#25262c}.danger{color:#ce2141;background:#fff2f4;border-color:#ffe0e6}.danger:hover{background:#ffe4ea}.icon{width:19px;height:19px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.svg-defs{position:absolute;width:0;height:0;overflow:hidden}[hidden]{display:none!important}
+    .shell{min-height:100dvh;display:grid;grid-template-columns:240px minmax(0,1fr)}.sidebar{position:sticky;top:0;height:100dvh;display:flex;flex-direction:column;background:white;border-right:1px solid var(--line);padding:30px 20px 22px}.brand-logos{display:flex;align-items:center;gap:14px;padding:0 8px 30px}.cft-logo{width:102px;height:35px}.brand-divider{height:26px;width:1px;background:#dedee4}.shift-logo{width:72px;height:auto;filter:brightness(0)}.product{padding:0 10px 32px}.product-title{font-size:20px;font-weight:750;letter-spacing:-.6px}.product-subtitle{color:var(--muted);font-size:12px;margin-top:6px}.nav-label{color:#9598a1;font-size:10px;font-weight:700;letter-spacing:1.4px;margin:0 12px 12px}.nav{display:flex;flex-direction:column;gap:7px}.nav button{justify-content:flex-start;background:transparent;color:#767984;font-weight:500;padding:13px 14px;font-size:14px}.nav button:hover{background:#f8f8fa}.nav button[aria-selected=true]{background:#fff0f3;color:var(--red);font-weight:650}.nav .icon{margin-right:3px}.nav-count{margin-left:auto;font-size:11px;background:#ffe0e7;padding:3px 7px;border-radius:6px}.sidebar-bottom{margin-top:auto;padding:22px 10px 0}.session{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);padding:15px 0;border-top:1px solid var(--line)}.dot{width:7px;height:7px;border-radius:50%;background:#a1a4ae;display:inline-block;flex-shrink:0}.session.online .dot{background:#15966b}.session.online{color:var(--green)}.back-link{display:inline-flex;gap:8px;align-items:center;font-size:12px;color:#767984}.back-link:hover{color:var(--red)}
+    .workspace{min-width:0}.topbar{height:76px;padding:0 38px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:white;gap:15px}.breadcrumb{display:flex;align-items:center;gap:11px;color:#9396a0;font-size:12px}.breadcrumb strong{color:#50535e;font-weight:500}.admin-chip{display:flex;align-items:center;gap:9px;font-size:12px}.avatar{width:32px;height:32px;background:#fff0f3;color:var(--red);display:grid;place-items:center;border-radius:9px;font-weight:700}.top-actions{display:flex;align-items:center;gap:12px}.top-actions .quiet{font-size:12px;min-height:34px}
+    main{max-width:1500px;margin:0 auto;padding:34px 38px 26px}.heading{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:27px}.eyebrow{font-size:10px;letter-spacing:1.8px;color:var(--red);font-weight:750;margin-bottom:12px}h1{font-size:30px;font-weight:700;letter-spacing:-1px;line-height:1.15;margin:0 0 11px}.subtitle{font-size:13px;line-height:1.65;color:var(--muted);margin:0}.heading-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}.panel{border:1px solid var(--line);background:white;border-radius:13px;overflow:hidden}.panel-head{padding:22px 24px;display:flex;justify-content:space-between;align-items:center;gap:15px}.panel-title{font-size:15px;margin:0;font-weight:650;letter-spacing:-.2px}.panel-note{font-size:12px;color:var(--muted);margin:7px 0 0;line-height:1.6}.panel-tools{display:flex;align-items:center;gap:10px}.status{padding:13px 16px;font-size:13px;line-height:1.5;border:1px solid #dce5f3;border-radius:10px;color:#365b88;background:#eff5fc;margin-bottom:20px;overflow-wrap:anywhere}.status.ok{color:#16714f;background:#effaf4;border-color:#d4ecde}.status.err{color:#b32845;background:#fff1f4;border-color:#ffd7e1}
+    .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-bottom:22px}.stat{background:white;border:1px solid var(--line);border-radius:12px;padding:19px 20px}.stat-top{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--muted);gap:10px}.stat-top .icon{color:#a8aab4;width:17px;height:17px}.stat-value{font-size:29px;font-weight:650;letter-spacing:-1px;margin:13px 0 7px;font-variant-numeric:tabular-nums}.stat-caption{font-size:11px;color:#9497a1}.stat-value.good{color:var(--green)}
+    .upload-panel{margin-bottom:22px}.upload-controls{display:flex;gap:18px;align-items:flex-end;padding:0 24px 22px}.field{display:flex;flex-direction:column;gap:8px;min-width:0}.field.grow{flex:1}.field-label{font-size:12px;font-weight:550;color:#565965}input,select{border:1px solid #e0e1e8;background:white;color:#393b44;min-height:42px;padding:10px 12px;font-size:12px;max-width:100%}input::placeholder{color:#9c9fa8}.dropzone{width:100%;border:1.5px dashed #dedee6;border-radius:10px;background:#fcfcfd;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:25px 20px;color:#3d404a;min-height:148px;font-weight:500}.dropzone:hover,.dropzone.drag{border-color:var(--red);background:#fff6f8}.dropzone .upload-icon{height:37px;width:37px;border-radius:10px;background:#fff0f3;color:var(--red);display:grid;place-items:center}.dropzone strong{font-size:13px;font-weight:550}.dropzone small{font-size:11px;font-weight:400;color:var(--muted)}.upload-area{padding:0 24px 24px}.upload-panel .panel-head{padding-bottom:18px}.hint{color:#9497a1;font-size:11px;font-weight:400}.file-toolbar{display:flex;gap:12px;padding:0 24px 20px}.search-box{position:relative;flex:1;min-width:0}.search-box .icon{position:absolute;left:12px;top:12px;width:17px;height:17px;color:#a1a4af;pointer-events:none}.search-box input{padding-left:37px;width:100%}.file-toolbar select{width:180px}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;text-align:left;font-size:12px}th{padding:13px 20px;background:#fafafb;border-top:1px solid var(--line);border-bottom:1px solid var(--line);color:#9497a1;font-weight:500;font-size:11px;white-space:nowrap}td{padding:17px 20px;border-bottom:1px solid #f0f0f4;vertical-align:middle}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:#fdfdfe}th:first-child,td:first-child{padding-left:24px}.file-name{display:flex;align-items:center;gap:11px;min-width:200px}.file-symbol{width:33px;height:39px;display:grid;place-items:center;color:#898d99;background:#f5f5f8;border-radius:7px;flex-shrink:0}.file-title{font-size:12px;font-weight:550;overflow-wrap:anywhere;max-width:360px}.file-path{font-size:10px;color:#999ca6;margin-top:5px;overflow-wrap:anywhere;max-width:360px}.category-pill{display:inline-block;padding:5px 8px;background:#f3f3f7;border-radius:5px;font-size:10px;color:#747886;overflow-wrap:anywhere;max-width:180px}.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border-radius:6px;font-size:10px;font-weight:550;white-space:nowrap}.badge.good{background:#eff9f3;color:#16865b}.badge.warn{background:#fff7e8;color:#9c6a13}.badge .dot{height:5px;width:5px;background:currentColor}.delete-file{padding:6px;min-height:30px;color:#a1a4ae}.delete-file:hover{color:#ce2141;background:#fff0f3}.delete-file .icon{height:16px;width:16px}.numeric{font-variant-numeric:tabular-nums;white-space:nowrap;color:#747884}.table-footer{padding:15px 24px;font-size:11px;border-top:1px solid var(--line);color:#9396a0;display:flex;justify-content:space-between;gap:16px}.empty{text-align:center;color:var(--muted);padding:44px 20px;line-height:1.8}.empty strong{display:block;color:#565965;font-size:14px;margin-bottom:6px;font-weight:550}.footer{display:flex;justify-content:space-between;gap:15px;padding:24px 1px 0;font-size:10px;color:#a0a3ad;line-height:1.7}
+    .auth-panel{max-width:590px;margin:48px auto 80px;padding:38px}.auth-mark{width:48px;height:48px;background:#fff0f3;color:var(--red);display:grid;place-items:center;border-radius:14px;margin-bottom:22px}.auth-panel h2{font-size:23px;letter-spacing:-.6px;margin:0 0 12px}.auth-panel p{font-size:13px;color:var(--muted);line-height:1.8;margin:0 0 25px}.auth-row{display:flex;gap:10px}.auth-row input{flex:1;min-width:0}.auth-panel .hint{display:block;margin-top:15px;line-height:1.6}.auth-panel label{display:block;margin-bottom:9px;font-size:12px;color:#555965}.auth-panel button{white-space:nowrap}
+    .log-toolbar{display:grid;grid-template-columns:170px 175px minmax(180px,1fr);gap:12px;padding:0 24px 22px}.log-toolbar select{width:100%}.live-control{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:#747884;cursor:pointer;white-space:nowrap}.live-control input{min-height:0;width:15px;height:15px;accent-color:var(--red);margin:0}.log-meta{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:#fafafb;border-top:1px solid var(--line);border-bottom:1px solid var(--line);gap:15px;font-size:11px;color:#90949f}.log-state{display:flex;gap:8px;align-items:center}.log-state.active .dot{background:#16865b}.logs-body{padding:0 24px;max-height:600px;overflow:auto;min-height:280px}.log-row{border-bottom:1px solid #eeeef3}.log-row:last-child{border:0}.log-row summary{list-style:none;display:grid;grid-template-columns:155px 66px 74px minmax(0,1fr) 15px;gap:14px;align-items:start;padding:16px 0;cursor:pointer;font-size:11px;line-height:1.6}.log-row summary::-webkit-details-marker{display:none}.log-time{font-variant-numeric:tabular-nums;color:#9397a2;white-space:nowrap}.level{font-size:9px;font-weight:700;letter-spacing:.25px;border-radius:4px;padding:3px 6px;display:inline-block;text-align:center;background:#eff4fc;color:#5179ab;width:max-content}.level.ERROR,.level.CRITICAL{background:#fff0f3;color:#d72c4e}.level.WARNING{background:#fff7e8;color:#a56d0a}.level.DEBUG{background:#f2f2f5;color:#818590}.log-service{color:#777c89}.log-event{font-family:ui-monospace,"Cascadia Code",monospace;overflow-wrap:anywhere;color:#555b67}.log-event span{color:#9a9eaa}.log-chevron{color:#a1a5b0;transition:transform .15s;width:14px;height:14px;margin-top:3px}.log-row[open] .log-chevron{transform:rotate(90deg)}.log-json{margin:0 0 16px;padding:15px 17px;border-radius:8px;background:#f7f7fa;color:#555b6a;white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.8 ui-monospace,"Cascadia Code",monospace}.log-note{padding:14px 24px;border-top:1px solid var(--line);color:#9599a4;font-size:11px;line-height:1.7}.logs-error{margin:16px 24px 0}.log-export{font-size:12px}.modal{border:1px solid var(--line);border-radius:16px;padding:28px;max-width:460px;width:calc(100% - 36px);color:#25262c;box-shadow:0 20px 80px #20202c25}.modal::backdrop{background:#22243165}.modal h2{font-size:20px;margin:0 0 12px;letter-spacing:-.4px}.modal p{color:var(--muted);font-size:13px;line-height:1.8;overflow-wrap:anywhere;margin:0 0 25px}.modal-actions{display:flex;justify-content:flex-end;gap:10px}.busy-indicator{color:var(--muted);font-size:11px;align-self:center;white-space:nowrap}
+    @media(min-width:1550px){main{padding-top:44px}.stats{gap:20px}.stat{padding:22px 24px}.heading{margin-bottom:32px}}
+    @media(max-width:1100px){.shell{grid-template-columns:205px minmax(0,1fr)}.sidebar{padding:28px 12px 20px}.brand-logos{gap:10px}.cft-logo{width:90px}.shift-logo{width:59px}main{padding:28px 24px}.topbar{padding:0 24px}.heading{align-items:flex-start}.heading-actions{flex-direction:column;align-items:stretch}.log-toolbar{grid-template-columns:1fr 1fr}.log-toolbar .search-box{grid-column:1/-1}.log-row summary{grid-template-columns:120px 60px 65px minmax(0,1fr) 12px;gap:8px}.log-time{font-size:10px}.stat{padding:17px 15px}.stat-top{font-size:11px}.stat-caption{font-size:10px}}
+    @media(max-width:760px){.shell{display:block}.sidebar{position:static;height:auto;padding:18px 20px 0;border-right:0;border-bottom:1px solid var(--line)}.brand-logos{padding:0}.brand-divider{height:22px}.cft-logo{width:90px;height:31px}.shift-logo{width:65px}.product{padding:14px 0 18px;display:flex;align-items:center;justify-content:space-between;gap:10px}.product-title{font-size:18px}.product-subtitle{font-size:10px;margin:0}.nav-label,.sidebar-bottom{display:none}.nav{flex-direction:row;gap:20px}.nav button{border-radius:0;padding:13px 0;border-bottom:2px solid transparent;font-size:13px}.nav button[aria-selected=true]{background:transparent;border-bottom-color:var(--red)}.nav-count{margin-left:5px}.topbar{height:58px;padding:0 20px}.breadcrumb{font-size:10px;gap:7px}.admin-chip{font-size:11px}.avatar{width:28px;height:28px}.top-actions{gap:5px}.top-actions .quiet{font-size:10px;padding:5px}.top-actions .quiet .icon{width:15px}main{padding:26px 18px}.heading{display:block;margin-bottom:22px}h1{font-size:27px}.subtitle{font-size:12px}.heading-actions{flex-direction:row;margin-top:20px;align-items:center;flex-wrap:wrap}.heading-actions button{font-size:12px}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:16px}.stat{padding:17px}.stat-value{font-size:26px;margin:10px 0 5px}.stat-caption{font-size:10px}.panel-head{padding:20px 18px;flex-wrap:wrap}.panel-tools{margin-left:auto}.upload-controls{padding:0 18px 18px;gap:12px}.upload-area{padding:0 18px 18px}.upload-controls button{font-size:11px;padding:10px}.dropzone{padding:24px 15px;text-align:center}.dropzone strong{font-size:12px}.dropzone small{font-size:10px}.file-toolbar{padding:0 18px 18px;gap:8px}.file-toolbar select{width:125px;font-size:11px}.table-footer{padding:14px 18px;flex-wrap:wrap;font-size:10px}.footer{font-size:9px}.log-toolbar{padding:0 18px 18px;gap:10px}.log-toolbar select{font-size:11px}.log-meta{padding:12px 18px;font-size:10px}.logs-body{padding:0 18px}.log-row summary{grid-template-columns:1fr 60px 65px 12px;gap:8px}.log-time{font-size:10px}.log-event{grid-column:1/-1;grid-row:2;font-size:11px}.log-chevron{grid-column:4;grid-row:1}.log-note{padding:14px 18px;font-size:10px}.log-json{font-size:10px}.auth-panel{margin:10px auto 35px;padding:26px 22px}.auth-panel h2{font-size:22px}.auth-row{flex-direction:column}.auth-row button{width:100%}.auth-panel p{font-size:12px}}
+    @media(prefers-reduced-motion:reduce){*{transition:none!important}}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div>
-        <h1>Админ-панель базы знаний RAG</h1>
-        <div class="sub">Загрузка .txt и .md с мгновенной индексацией в Qdrant</div>
-      </div>
-      <div class="row">
-        <button class="secondary" id="refreshBtn" type="button">Обновить</button>
-        <button id="reindexBtn" type="button">Полная переиндексация</button>
-      </div>
-    </header>
-
-    <div class="status" id="statusBox"></div>
-
-    <section class="card">
-      <div class="row">
-        <input id="tokenInput" type="password" placeholder="Введите ADMIN_TOKEN" autocomplete="off" />
-        <button id="saveTokenBtn" type="button">Войти</button>
-      </div>
-    </section>
-
-    <section class="card" id="mainArea" style="display:none;">
-      <div class="row">
-        <input id="categoryInput" type="text" placeholder="Раздел / папка (например: shift или cft/products; пусто = общее)" />
-        <input id="fileInput" type="file" accept=".txt,.md" multiple hidden />
-        <button id="pickBtn" type="button">Выбрать файлы</button>
-      </div>
-      <div class="dropzone" id="dropzone">
-        Перетащите сюда <strong>.txt</strong> или <strong>.md</strong> файлы — они сохранятся в volume и сразу проиндексируются
-      </div>
-    </section>
-
-    <section class="card" id="tableCard" style="display:none;">
-      <div class="row" style="justify-content:space-between; margin-bottom:10px;">
-        <strong>Файлы в хранилище</strong>
-        <span class="stats" id="statsLabel"></span>
-      </div>
-      <div style="overflow-x:auto;">
-        <table>
-          <thead>
-            <tr>
-              <th>Путь / файл</th>
-              <th>Раздел</th>
-              <th>Размер</th>
-              <th>Чанков</th>
-              <th>Статус</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="filesBody"></tbody>
-        </table>
-      </div>
-    </section>
+  <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 4h6a3 3 0 0 1 3 3v14a4 4 0 0 0-4-2H4zM13 7a3 3 0 0 1 3-3h5v15h-5a3 3 0 0 0-3 2"/></symbol>
+    <symbol id="i-log" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3m6 0h4"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10zM13 3v7h7M8 14h8m-8 3h5"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 16v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v13m-5-5 5 5 5-5M4 16v4h16v-4"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 10a8 8 0 0 0-14-5L3 8m0-5v5h5m-4 6a8 8 0 0 0 14 5l3-3m0 5v-5h-5"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6M8 12h13"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 10 5-10 5L2 8zm-10 9 10 5 10-5M2 16l10 5 10-5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7V4h6l3 3h9v13H3z"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="i-exit" viewBox="0 0 24 24"><path d="M9 5H4v14h5m6-14 7 7-7 7m-7-7h14"/></symbol>
+  </defs></svg>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand-logos"><img class="cft-logo" alt="ЦФТ" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4gPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDIiIGhlaWdodD0iMzUiIHZpZXdCb3g9IjAgMCAxMDIgMzUiIGZpbGw9Im5vbmUiPiA8cGF0aCBkPSJNMTAyIDAuOTg5MzQ5SDBWMzQuOTg5M0gxMDJWMC45ODkzNDlaIiBmaWxsPSIjRTMwOTI2Ij48L3BhdGg+IDxwYXRoIGQ9Ik05My41NzQ1IDI1LjI3NVYyMi4yMDc0SDkzLjA2MzhMOTEuNTMxOSAyNC4xMjQ3VjIyLjIwNzRIOTAuODkzNlYyNS4yNzVIOTEuNDA0Mkw5Mi45MzYyIDIzLjM1NzhWMjUuMjc1SDkzLjU3NDVaTTkyLjE3MDIgMjEuNDQwNUM5Mi4wNDI1IDIxLjQ0MDUgOTEuOTE0OSAyMS4zMTI2IDkxLjkxNDkgMjEuMTg0OEg5MS41MzE5QzkxLjUzMTkgMjEuNTY4MyA5MS43ODcyIDIxLjgyMzkgOTIuMTcwMiAyMS44MjM5QzkyLjU1MzIgMjEuODIzOSA5Mi44MDg1IDIxLjU2ODMgOTIuODA4NSAyMS4xODQ4SDkyLjQyNTVDOTIuNDI1NSAyMS4zMTI2IDkyLjQyNTUgMjEuNDQwNSA5Mi4xNzAyIDIxLjQ0MDVaTTkwIDI1LjI3NVYyMi4yMDc0SDg5LjQ4OTNMODcuOTU3NCAyNC4xMjQ3VjIyLjIwNzRIODcuMzE5MVYyNS4yNzVIODcuODI5OEw4OS4zNjE3IDIzLjM1NzhWMjUuMjc1SDkwWk04NC41MTA2IDI1LjI3NUg4NS4xNDg5VjIyLjg0NjVIODYuNTUzMlYyMi4yMDc0SDg0LjUxMDZWMjUuMjc1Wk04MC41NTMyIDIzLjc0MTJDODAuNTUzMiAyNC42MzYgODEuMzE5MSAyNS40MDI5IDgyLjIxMjggMjUuNDAyOUM4My4xMDY0IDI1LjQwMjkgODMuODcyMyAyNC42MzYgODMuODcyMyAyMy43NDEyQzgzLjg3MjMgMjIuODQ2NSA4My4xMDY0IDIyLjA3OTYgODIuMjEyOCAyMi4wNzk2QzgxLjMxOTEgMjIuMjA3NCA4MC41NTMyIDIyLjg0NjUgODAuNTUzMiAyMy43NDEyWk04MS4zMTkxIDIzLjc0MTJDODEuMzE5MSAyMy4yMjk5IDgxLjcwMjEgMjIuNzE4NyA4Mi4zNDA0IDIyLjcxODdDODIuODUxMSAyMi43MTg3IDgzLjM2MTcgMjMuMTAyMSA4My4zNjE3IDIzLjc0MTJDODMuMzYxNyAyNC4yNTI1IDgyLjk3ODcgMjQuNzYzOCA4Mi4zNDA0IDI0Ljc2MzhDODEuNzAyMSAyNC43NjM4IDgxLjMxOTEgMjQuMzgwMyA4MS4zMTkxIDIzLjc0MTJaTTc5LjkxNDkgMjIuMjA3NEg3Ny43NDQ3VjIzLjEwMjFDNzcuNzQ0NyAyNC4zODAzIDc3LjQ4OTQgMjQuNjM1OSA3Ny4yMzQgMjQuNjM1OUM3Ny4xMDY0IDI0LjYzNTkgNzYuOTc4NyAyNC42MzU5IDc2Ljk3ODcgMjQuNjM1OVYyNS4yNzVDNzYuOTc4NyAyNS4yNzUgNzcuMTA2NCAyNS40MDI5IDc3LjM2MTcgMjUuNDAyOUM3OCAyNS40MDI5IDc4LjM4MyAyNS4wMTk0IDc4LjM4MyAyMy4yMjk5VjIyLjg0NjVINzkuMjc2NlYyNS4yNzVINzkuOTE0OVYyMi4yMDc0Wk03My40MDQzIDIzLjc0MTJDNzMuNDA0MyAyNC42MzYgNzQuMTcwMiAyNS40MDI5IDc1LjA2MzggMjUuNDAyOUM3NS45NTc0IDI1LjQwMjkgNzYuNzIzNCAyNC42MzYgNzYuNzIzNCAyMy43NDEyQzc2LjcyMzQgMjIuODQ2NSA3NS45NTc0IDIyLjA3OTYgNzUuMDYzOCAyMi4wNzk2Qzc0LjE3MDIgMjIuMjA3NCA3My40MDQzIDIyLjg0NjUgNzMuNDA0MyAyMy43NDEyWk03NC4wNDI2IDIzLjc0MTJDNzQuMDQyNiAyMy4yMjk5IDc0LjQyNTUgMjIuNzE4NyA3NS4wNjM4IDIyLjcxODdDNzUuNTc0NSAyMi43MTg3IDc2LjA4NTEgMjMuMTAyMSA3Ni4wODUxIDIzLjc0MTJDNzYuMDg1MSAyNC4yNTI1IDc1LjcwMjEgMjQuNzYzOCA3NS4wNjM4IDI0Ljc2MzhDNzQuNTUzMiAyNC43NjM4IDc0LjA0MjYgMjQuMzgwMyA3NC4wNDI2IDIzLjc0MTJaTTcyLjc2NiAyMi4yMDc0SDcyLjEyNzdWMjMuNDg1Nkg3MC44NTExVjIyLjIwNzRINzAuMjEyOFYyNS4yNzVINzAuODUxMVYyMy45OTY4SDcyLjEyNzdWMjUuMjc1SDcyLjc2NlYyMi4yMDc0Wk02OC4wNDI1IDI0LjEyNDdMNjguODA4NSAyNS4yNzVINjkuNTc0NUw2OC41NTMyIDIzLjYxMzRMNjkuNTc0NSAyMi4yMDc0SDY4LjgwODVMNjguMTcwMiAyMy4yMjk5TDY3LjUzMTkgMjIuMjA3NEg2Ni43NjU5TDY3Ljc4NzIgMjMuNjEzNEw2Ni43NjU5IDI1LjI3NUg2Ny41MzE5TDY4LjA0MjUgMjQuMTI0N1pNNjQuNTk1NyAyNC42MzU5VjIzLjk5NjhINjUuODcyM1YyMy4zNTc4SDY0LjU5NTdWMjIuNzE4N0g2Ni4yNTUzVjIyLjA3OTZINjMuOTU3NFYyNS4xNDcySDY2LjI1NTNWMjQuNTA4MUg2NC41OTU3VjI0LjYzNTlaTTYwLjg5MzYgMjIuMjA3NFYyMi44NDY1SDYxLjc4NzJWMjUuMjc1SDYyLjQyNTVWMjIuODQ2NUg2My4zMTkxVjIyLjIwNzRINjAuODkzNloiIGZpbGw9IndoaXRlIj48L3BhdGg+IDxwYXRoIGQ9Ik05NC41OTU3IDE4LjUwMDZMOTUuMzYxNyAxOS42NTFIOTYuMTI3N0w5NS4xMDY0IDE3Ljk4OTNMOTYuMTI3NyAxNi41ODMzSDk1LjM2MTdMOTQuNzIzNCAxNy42MDU5TDk0LjA4NTEgMTYuNTgzM0g5My4zMTkxTDk0LjM0MDQgMTcuOTg5M0w5My4zMTkxIDE5LjY1MUg5NC4wODUxTDk0LjU5NTcgMTguNTAwNlpNODkuODcyMyAxOS4xMzk3VjE4LjI0NUg5MC4zODNDOTAuNjM4MyAxOC4yNDUgOTAuODkzNiAxOC41MDA2IDkwLjg5MzYgMTguNjI4NEM5MC44OTM2IDE4Ljg4NDEgOTAuNjM4MyAxOS4wMTE5IDkwLjM4MyAxOS4wMTE5SDg5Ljg3MjNWMTkuMTM5N1pNOTAuNTEwNiAxOS42NTFDOTEuMTQ4OSAxOS42NTEgOTEuNjU5NiAxOS4xMzk3IDkxLjY1OTYgMTguNjI4NEM5MS42NTk2IDE3Ljk4OTMgOTEuMTQ4OSAxNy42MDU5IDkwLjUxMDYgMTcuNjA1OUg4OS44NzIzVjE2LjU4MzNIODkuMjM0VjE5LjY1MUg5MC41MTA2Wk05Mi41NTMyIDE2LjU4MzNIOTEuOTE0OVYxOS42NTFIOTIuNTUzMlYxNi41ODMzWk04Ny4zMTkxIDE3LjA5NDZDODcuNTc0NSAxNy4wOTQ2IDg3LjcwMjEgMTcuMjIyNCA4Ny43MDIxIDE3LjQ3OEM4Ny43MDIxIDE3LjczMzcgODcuNTc0NSAxNy44NjE1IDg3LjMxOTEgMTcuODYxNUg4Ni42ODA5VjE3LjIyMjRIODcuMzE5MVYxNy4wOTQ2Wk04Ni42ODA5IDE5LjEzOTdWMTguMzcyOEg4Ny4zMTkxQzg3LjU3NDUgMTguMzcyOCA4Ny43MDIxIDE4LjUwMDYgODcuNzAyMSAxOC43NTYyQzg3LjcwMjEgMTkuMDExOSA4Ny41NzQ1IDE5LjEzOTcgODcuMzE5MSAxOS4xMzk3SDg2LjY4MDlaTTg3LjQ0NjggMTkuNjUxQzg4LjA4NTEgMTkuNjUxIDg4LjQ2ODEgMTkuMjY3NSA4OC40NjgxIDE4Ljc1NjJDODguNDY4MSAxOC4yNDUgODcuOTU3NCAxNy45ODkzIDg3Ljk1NzQgMTcuOTg5M0M4Ny45NTc0IDE3Ljk4OTMgODguMzQwNCAxNy43MzM3IDg4LjM0MDQgMTcuMzUwMkM4OC4zNDA0IDE2Ljk2NjggODcuOTU3NCAxNi41ODMzIDg3LjMxOTEgMTYuNTgzM0g4Ni4wNDI2VjE5LjY1MUg4Ny40NDY4Wk04Mi4wODUxIDE4LjExNzFDODIuMDg1MSAxOS4wMTE5IDgyLjg1MTEgMTkuNzc4OCA4My43NDQ3IDE5Ljc3ODhDODQuNjM4MyAxOS43Nzg4IDg1LjQwNDMgMTkuMDExOSA4NS40MDQzIDE4LjExNzFDODUuNDA0MyAxNy4yMjI0IDg0LjYzODMgMTYuNDU1NSA4My43NDQ3IDE2LjQ1NTVDODIuODUxMSAxNi41ODMzIDgyLjA4NTEgMTcuMjIyNCA4Mi4wODUxIDE4LjExNzFaTTgyLjcyMzQgMTguMTE3MUM4Mi43MjM0IDE3LjYwNTkgODMuMTA2NCAxNy4wOTQ2IDgzLjc0NDcgMTcuMDk0NkM4NC4yNTUzIDE3LjA5NDYgODQuNzY2IDE3LjQ3OCA4NC43NjYgMTguMTE3MUM4NC43NjYgMTguNjI4NCA4NC4zODMgMTkuMTM5NyA4My43NDQ3IDE5LjEzOTdDODMuMjM0IDE5LjEzOTcgODIuNzIzNCAxOC43NTYyIDgyLjcyMzQgMTguMTE3MVpNODAuNDI1NSAxNi41ODMzQzc5LjUzMTkgMTYuNTgzMyA3OC43NjYgMTcuMzUwMiA3OC43NjYgMTguMjQ1Qzc4Ljc2NiAxOS4xMzk3IDc5LjUzMTkgMTkuOTA2NiA4MC40MjU1IDE5LjkwNjZDODEuMzE5MiAxOS45MDY2IDgxLjcwMjEgMTkuMjY3NSA4MS43MDIxIDE5LjI2NzVMODEuMzE5MiAxOC44ODQxQzgxLjMxOTIgMTguODg0MSA4MS4wNjM4IDE5LjI2NzUgODAuNDI1NSAxOS4yNjc1Qzc5LjkxNDkgMTkuMjY3NSA3OS40MDQzIDE4Ljg4NDEgNzkuNDA0MyAxOC4yNDVDNzkuNDA0MyAxNy43MzM3IDc5Ljc4NzIgMTcuMjIyNCA4MC40MjU1IDE3LjIyMjRDODAuOTM2MiAxNy4yMjI0IDgxLjMxOTIgMTcuNjA1OSA4MS4zMTkyIDE3LjYwNTlMODEuNzAyMSAxNy4yMjI0QzgxLjcwMjEgMTcuMDk0NiA4MS4zMTkyIDE2LjU4MzMgODAuNDI1NSAxNi41ODMzWk03OCAxNi41ODMzSDc3LjM2MTdWMTcuODYxNUg3Ni4wODUxVjE2LjU4MzNINzUuNDQ2OFYxOS42NTFINzYuMDg1MVYxOC4zNzI4SDc3LjM2MTdWMTkuNjUxSDc4VjE2LjU4MzNaTTczLjc4NzIgMTkuMDExOUw3NC4wNDI2IDE5Ljc3ODhINzQuODA4NUw3My42NTk2IDE2LjcxMTFINzMuMDIxM0w3MS44NzIzIDE5Ljc3ODhINzIuNTEwNkw3Mi43NjYgMTkuMDExOUg3My43ODcyWk03My42NTk2IDE4LjM3MjhINzIuODkzNkw3My4yNzY2IDE3LjM1MDJMNzMuNjU5NiAxOC4zNzI4Wk03MS4xMDY0IDE2LjU4MzNINzAuNDY4MVYxNy44NjE1SDY5LjE5MTVWMTYuNTgzM0g2OC41NTMyVjE5LjY1MUg2OS4xOTE1VjE4LjM3MjhINzAuNDY4MVYxOS42NTFINzEuMTA2NFYxNi41ODMzWk02Ny41MzE5IDE5LjY1MVYxNi41ODMzSDY3LjAyMTNMNjUuNDg5NCAxOC41MDA2VjE2LjU4MzNINjQuODUxMVYxOS42NTFINjUuMzYxN0w2Ni44OTM2IDE3LjczMzdWMTkuNjUxSDY3LjUzMTlaTTYzLjQ0NjggMTguMTE3MUM2My40NDY4IDE4LjUwMDYgNjMuMTkxNSAxOC43NTYyIDYyLjY4MDggMTguNzU2MlYxNy4zNTAyQzYzLjE5MTUgMTcuNDc4MSA2My40NDY4IDE3LjczMzcgNjMuNDQ2OCAxOC4xMTcxWk02Mi42ODA4IDE5LjM5NTNDNjMuNTc0NSAxOS4zOTUzIDY0LjA4NTEgMTguNzU2MiA2NC4wODUxIDE4LjExNzFDNjQuMDg1MSAxNy40NzggNjMuNTc0NSAxNi44Mzg5IDYyLjY4MDggMTYuODM4OVYxNi40NTU1SDYyLjA0MjVWMTYuODM4OUM2MS4xNDg5IDE2LjgzODkgNjAuNjM4MyAxNy40NzggNjAuNjM4MyAxOC4xMTcxQzYwLjYzODMgMTguNzU2MiA2MS4xNDg5IDE5LjM5NTMgNjIuMDQyNSAxOS4zOTUzVjE5Ljc3ODhINjIuNjgwOFYxOS4zOTUzWk02MS4yNzY2IDE4LjExNzFDNjEuMjc2NiAxNy43MzM3IDYxLjUzMTkgMTcuNDc4IDYyLjA0MjUgMTcuNDc4VjE4Ljg4NDFDNjEuNjU5NiAxOC43NTYyIDYxLjI3NjYgMTguNTAwNiA2MS4yNzY2IDE4LjExNzFaIiBmaWxsPSJ3aGl0ZSI+PC9wYXRoPiA8cGF0aCBkPSJNNzUuMDYzOCAxMS41OTg0Qzc1LjMxOTEgMTEuNTk4NCA3NS41NzQ1IDExLjg1NCA3NS41NzQ1IDExLjk4MThDNzUuNTc0NSAxMi4yMzc0IDc1LjMxOTEgMTIuMzY1MyA3NS4wNjM4IDEyLjM2NTNINzQuNDI1NVYxMS40NzA1SDc1LjA2MzhWMTEuNTk4NFpNNzMuNzg3MiAxMC45NTkzVjE0LjAyNjlINzQuNDI1NVYxMy4wMDQ0SDc1LjA2MzhDNzUuNzAyMSAxMy4wMDQ0IDc2LjIxMjggMTIuNDkzMSA3Ni4yMTI4IDExLjk4MThDNzYuMjEyOCAxMS4zNDI3IDc1LjcwMjEgMTAuOTU5MyA3NS4wNjM4IDEwLjk1OTNINzMuNzg3MlpNNzAuNzIzNCAxMC45NTkzVjExLjU5ODRINzEuNjE3VjE0LjAyNjlINzIuMjU1M1YxMS41OTg0SDczLjE0ODlWMTAuOTU5M0g3MC43MjM0Wk03MC4wODUxIDEwLjk1OTNINjkuNDQ2OFYxMi4yMzc1SDY4LjE3MDJWMTAuOTU5M0g2Ny41MzE5VjE0LjAyNjlINjguMTcwMlYxMi43NDg3SDY5LjQ0NjhWMTQuMDI2OUg3MC4wODUxVjEwLjk1OTNaTTY1LjEwNjQgMTMuNTE1N1YxMi44NzY2SDY2LjM4M1YxMi4yMzc1SDY1LjEwNjRWMTEuNTk4NEg2Ni43NjU5VjEwLjk1OTNINjQuNDY4MVYxNC4wMjY5SDY2Ljc2NTlWMTMuMzg3OEg2NS4xMDY0VjEzLjUxNTdaTTYwLjg5MzYgMTQuMDI2OUg2My4xOTE1VjE0LjY2Nkg2My44Mjk4VjEzLjM4NzhINjMuNDQ2OFYxMC45NTkzSDYyLjgwODVWMTMuMzg3OEg2MS41MzE5VjEwLjk1OTNINjAuODkzNlYxNC4wMjY5WiIgZmlsbD0id2hpdGUiPjwvcGF0aD4gPHBhdGggZD0iTTMxLjY1OTYgMjUuMjc1MUgzNS4yMzQxVjI0LjI1MjVDMzguOTM2MiAyNC4yNTI1IDQxLjc0NDcgMjIuMjA3NCA0MS43NDQ3IDE4LjI0NUM0MS43NDQ3IDE0LjI4MjYgMzguODA4NSAxMi4yMzc1IDM1LjIzNDEgMTIuMjM3NVYxMC45NTkzSDMxLjY1OTZWMTIuMjM3NUMyNy45NTc1IDEyLjIzNzUgMjUuMTQ5IDE0LjI4MjYgMjUuMTQ5IDE4LjI0NUMyNS4xNDkgMjIuMjA3NCAyOC4wODUxIDI0LjI1MjUgMzEuNjU5NiAyNC4yNTI1VjI1LjI3NTFaTTM1LjEwNjQgMjEuMzEyNlYxNS4xNzczQzM3LjAyMTMgMTUuMTc3MyAzOC40MjU1IDE2LjE5OTkgMzguNDI1NSAxOC4yNDVDMzguNDI1NSAyMC4yOTAxIDM3LjE0OSAyMS4zMTI2IDM1LjEwNjQgMjEuMzEyNlpNMjguMzQwNCAxOC4yNDVDMjguMzQwNCAxNi4xOTk5IDI5Ljc0NDcgMTUuMTc3MyAzMS42NTk2IDE1LjE3NzNWMjEuMzEyNkMyOS43NDQ3IDIxLjMxMjYgMjguMzQwNCAyMC4yOTAxIDI4LjM0MDQgMTguMjQ1WiIgZmlsbD0id2hpdGUiPjwvcGF0aD4gPHBhdGggZD0iTTU0LjYzODMgMTAuOTU5M0g0My4wMjEzVjE0LjE1NDdINDYuOTc4N1YyNS4yNzUxSDUwLjU1MzJWMTQuMTU0N0g1NC42MzgzVjEwLjk1OTNaIiBmaWxsPSJ3aGl0ZSI+PC9wYXRoPiA8cGF0aCBkPSJNMTguMzgzIDIyLjA3OTZIMTMuNjU5NlYxMC45NTkzSDEwLjIxMjhWMjUuMjc1MUgyMC4yOTc5VjI2LjgwODlIMjMuNDg5NEwyMy44NzIzIDIyLjA3OTZIMjEuOTU3NVYxMC45NTkzSDE4LjM4M1YyMi4wNzk2WiIgZmlsbD0id2hpdGUiPjwvcGF0aD4gPC9zdmc+IA=="/><span class="brand-divider"></span><img class="shift-logo" alt="ШИФТ" src="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTMyIDM2IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGFyaWEtaGlkZGVuPSJ0cnVlIiBjbGFzcz0iY3NzLXF1OWIxaCBlcjhtMDQxMCI+PHBhdGggZD0iTTEzMS4xNDMgMTAuMjMzVjMuMTk4SDEwMi41M3Y3LjAzNWgxMC44MjF2MjEuNTY0aDcuMDYyVjIwLjgzMmgyLjIwMXYtOC40OTdoLTIuMjAxdi0yLjEwMmgxMC43M1ptLTI4LjMzOCAxMy42MTVoLTIuMDE4di0xMi42MWg0LjMxMXYtMS4wMDVoLTQuMzExVjMuMTk4SDY4LjEzOXYyNS44NThoLTEuODM0djIuNjVoMS45MjZ2LTIuNTU5aDUuODd2LTIuMDFoNi45N3Y0LjU2OWg3LjA2di00LjU2OWgxNC45NDl2LTMuMTk4aDIuODQzdi0xLjAwNWgtMi45MzV2LjkxNGgtLjE4M1ptLTIxLjgyNy0zLjc0NmgtNS43Nzd2LTkuODY5aDUuNzc3djkuODY5Wm0xMi44NCAwSDg4LjA0di05Ljg2OWg1Ljc3OHY5Ljg2OVptLTUwLjYyMy4wOVYzLjE5OWgzLjIxVjBoLTMuMjF2My4xOThoLTYuOTd2MTcuOTA5aC0xLjAwOXYxMi43aC0xLjE5MlYzNmgyLjJ2LTIuMTkzaDIuMTF2LTIuMTAyaDMuODUybDE1LjU5LTE2Ljk5NHYxNi45OTVoNy4wNjJWMy4xOThoLTUuOTYxTDQzLjE5NSAyMC4xOTNabS0xNi4zMjUgNC41N2gtNS43NzdWMy4xOTdIMTQuMDN2MjEuNTYzSDguMjU0VjMuMTk4SDB2OC40OTdoMS4xOTJ2MjAuMTAyaDE3Ljk3NXYuOTE0SDMzLjg0VjMuMTk4SDI2Ljc4djIxLjU2M2guMDkxWiIgZmlsbD0iI2ZmZiI+PC9wYXRoPjwvc3ZnPg=="/></div>
+      <div class="product"><div class="product-title">Partner Agent<span style="color:var(--red)">.</span></div><div class="product-subtitle">Панель администратора</div></div>
+      <div class="nav-label">УПРАВЛЕНИЕ</div>
+      <nav class="nav" role="tablist" aria-label="Разделы администрирования">
+        <button id="tab-knowledge" role="tab" aria-selected="true" aria-controls="knowledge" type="button"><svg class="icon"><use href="#i-book"/></svg>База знаний<span class="nav-count" id="fileCount">—</span></button>
+        <button id="tab-logs" role="tab" aria-selected="false" aria-controls="logs" tabindex="-1" type="button"><svg class="icon"><use href="#i-log"/></svg>Логи</button>
+      </nav>
+      <div class="sidebar-bottom"><div class="session" id="session"><span class="dot"></span><span id="sessionText">Ожидание входа</span></div><a class="back-link" href="/"><svg class="icon"><use href="#i-arrow"/></svg>Вернуться к ассистенту</a></div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar"><div class="breadcrumb"><span>Partner Agent</span><span>/</span><strong id="breadcrumb">База знаний</strong></div><div class="top-actions"><div class="admin-chip"><span class="avatar">А</span><span>Администратор</span></div><button class="quiet" id="logoutBtn" hidden type="button" title="Завершить сеанс"><svg class="icon"><use href="#i-exit"/></svg>Выйти</button></div></header>
+      <main>
+        <div class="heading"><div><div class="eyebrow">ЦФТ × ШИФТ</div><h1 id="pageTitle">База знаний</h1><p class="subtitle" id="pageSubtitle">Управляйте документами, на основе которых отвечает ассистент.</p></div><div class="heading-actions" id="headingActions" hidden><button class="secondary" id="refreshBtn" type="button"><svg class="icon"><use href="#i-refresh"/></svg>Обновить</button><button class="secondary" id="reindexBtn" type="button"><svg class="icon"><use href="#i-layers"/></svg>Переиндексировать</button></div></div>
+        <div id="statusBox" class="status" role="status" aria-live="polite" hidden></div>
+        <section class="panel auth-panel" id="authPanel" aria-labelledby="authTitle"><div class="auth-mark"><svg class="icon"><use href="#i-lock"/></svg></div><h2 id="authTitle">Вход в панель управления</h2><p>Документы и журнал сервисов доступны администратору. Введите токен доступа, чтобы продолжить.</p><form id="authForm"><label for="tokenInput">Токен администратора</label><div class="auth-row"><input id="tokenInput" type="password" placeholder="Введите токен доступа" autocomplete="off" required/><button id="saveTokenBtn" type="submit">Войти в панель</button></div></form><span class="hint">Токен задаётся в настройке RAG_ADMIN_TOKEN и сохраняется только на время сеанса этой вкладки.</span></section>
+        <div id="adminContent" hidden>
+          <section id="knowledge" role="tabpanel" aria-labelledby="tab-knowledge" tabindex="0">
+            <div class="stats" aria-label="Состояние базы знаний">
+              <div class="stat"><div class="stat-top">Всего документов<svg class="icon"><use href="#i-file"/></svg></div><div class="stat-value" id="statFiles">—</div><div class="stat-caption">В базе знаний</div></div>
+              <div class="stat"><div class="stat-top">Проиндексировано<svg class="icon"><use href="#i-check"/></svg></div><div class="stat-value good" id="statIndexed">—</div><div class="stat-caption" id="statIndexCaption">Документов готовы к поиску</div></div>
+              <div class="stat"><div class="stat-top">Фрагментов<svg class="icon"><use href="#i-layers"/></svg></div><div class="stat-value" id="statChunks">—</div><div class="stat-caption">В поисковом индексе</div></div>
+              <div class="stat"><div class="stat-top">Объём файлов<svg class="icon"><use href="#i-folder"/></svg></div><div class="stat-value" id="statSize">—</div><div class="stat-caption">Документы в хранилище</div></div>
+            </div>
+            <section class="panel upload-panel" aria-labelledby="uploadTitle"><div class="panel-head"><div><h2 class="panel-title" id="uploadTitle">Добавить документы</h2><p class="panel-note">Новые файлы автоматически появятся в поиске ассистента.</p></div></div><div class="upload-controls"><label class="field grow"><span class="field-label">Раздел <span class="hint">· необязательно</span></span><input id="categoryInput" placeholder="Например: shift или cft/products" maxlength="180"/></label><input id="fileInput" type="file" accept=".txt,.md" multiple hidden/><button id="pickBtn" type="button"><svg class="icon"><use href="#i-upload"/></svg>Выбрать файлы</button></div><div class="upload-area"><button class="dropzone" id="dropzone" type="button"><span class="upload-icon"><svg class="icon"><use href="#i-upload"/></svg></span><strong>Перетащите документы сюда или нажмите для выбора</strong><small>Markdown (.md) и текстовые файлы (.txt)</small></button></div></section>
+            <section class="panel" aria-labelledby="filesTitle"><div class="panel-head"><h2 class="panel-title" id="filesTitle">Документы</h2><span class="hint" id="statsLabel">—</span></div><div class="file-toolbar"><div class="search-box"><svg class="icon"><use href="#i-search"/></svg><input id="fileSearch" aria-label="Поиск документов" placeholder="Найти документ…" type="search"/></div><select id="categoryFilter" aria-label="Фильтр по разделу"><option value="">Все разделы</option></select></div><div class="table-wrap"><table><thead><tr><th>Название документа</th><th>Раздел</th><th>Размер</th><th>Фрагменты</th><th>Статус</th><th><span hidden>Действия</span></th></tr></thead><tbody id="filesBody"></tbody></table></div><div class="table-footer"><span id="filesShown">—</span><span id="filesUpdated">Данные ещё не загружены</span></div></section>
+          </section>
+          <section id="logs" role="tabpanel" aria-labelledby="tab-logs" tabindex="0" hidden>
+            <section class="panel" aria-labelledby="logsTitle"><div class="panel-head"><div><h2 class="panel-title" id="logsTitle">Журнал событий</h2><p class="panel-note">Запросы, генерации ответов и ошибки сервисов.</p></div><div class="panel-tools"><label class="live-control"><input id="autoRefresh" type="checkbox" checked/>Автообновление</label><button class="secondary log-export" id="exportLogs" type="button" disabled title="Скачать показанные события в JSONL"><svg class="icon"><use href="#i-download"/></svg>Скачать</button></div></div><div class="log-toolbar"><label class="field"><span class="field-label">Сервис</span><select id="logService"><option value="">Все сервисы</option><option value="auth">Авторизация · auth</option><option value="backend">Бэкенд · backend</option><option value="rag">База знаний · rag</option></select></label><label class="field"><span class="field-label">Минимальный уровень</span><select id="logLevel"><option value="DEBUG">Все уровни</option><option value="INFO">INFO и выше</option><option value="WARNING">WARNING и выше</option><option value="ERROR">ERROR и выше</option><option value="CRITICAL">CRITICAL</option></select></label><label class="field search-box"><span class="field-label">Поиск по журналу</span><input id="logSearch" type="search" maxlength="200" placeholder="Событие, путь или request_id…"/></label></div><div class="log-meta"><span class="log-state" id="logState"><span class="dot"></span><span id="logStateText">Ожидание данных</span></span><span id="logsUpdated">—</span></div><div id="logsError" class="status err logs-error" role="status" hidden></div><div class="logs-body" id="logsBody" aria-label="События сервисов"><div class="empty">Загрузка журнала…</div></div><div class="log-note" id="logsNote">Сначала новые события. Нажмите на строку, чтобы раскрыть подробности.</div></section>
+          </section>
+        </div>
+        <footer class="footer"><span>Partner Agent · ЦФТ / ШИФТ</span><span>Панель администратора</span></footer>
+      </main>
+    </div>
   </div>
-
+  <dialog class="modal" id="confirmDialog" aria-labelledby="confirmTitle" aria-describedby="confirmText"><h2 id="confirmTitle"></h2><p id="confirmText"></p><form method="dialog" class="modal-actions"><button class="secondary" value="cancel">Отмена</button><button value="confirm" id="confirmButton">Подтвердить</button></form></dialog>
   <script>
-    const tokenInput = document.getElementById("tokenInput");
-    const statusBox = document.getElementById("statusBox");
-    const mainArea = document.getElementById("mainArea");
-    const tableCard = document.getElementById("tableCard");
-    const filesBody = document.getElementById("filesBody");
-    const statsLabel = document.getElementById("statsLabel");
-    const categoryInput = document.getElementById("categoryInput");
-    const fileInput = document.getElementById("fileInput");
-    const dropzone = document.getElementById("dropzone");
-    const reindexBtn = document.getElementById("reindexBtn");
-    const refreshBtn = document.getElementById("refreshBtn");
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const number = value => Number(value || 0).toLocaleString('ru-RU');
+    const time = value => new Date(value).toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const dateTime = value => new Date(value).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    let token = '', authenticated = false, activeTab = 'knowledge', busy = false, revision = 0;
+    let files = [], logEntries = [], logController, logTimer, storageToken = '';
+    try { storageToken = sessionStorage.getItem('rag_admin_token') || ''; } catch {}
+    $('tokenInput').value = storageToken;
 
-    let token = sessionStorage.getItem("rag_admin_token") || "";
-    if (token) tokenInput.value = token;
-
-    function showStatus(msg, type = "info") {
-      statusBox.textContent = msg;
-      statusBox.className = `status show ${type}`;
+    function showStatus(message, type = 'info') {
+      $('statusBox').textContent = message;
+      $('statusBox').className = `status ${type}`;
+      $('statusBox').hidden = false;
     }
-
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, (c) => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-      }[c]));
-    }
-
     function formatBytes(bytes) {
-      if (!bytes) return "—";
-      if (bytes < 1024) return `${bytes} Б`;
-      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} КБ`;
-      return `${(bytes / (1024 * 1024)).toFixed(2)} МБ`;
+      if (!bytes) return '0 Б';
+      if (bytes < 1024) return `${number(bytes)} Б`;
+      if (bytes < 1024 ** 2) return `${(bytes / 1024).toLocaleString('ru-RU', {maximumFractionDigits:1})} КБ`;
+      return `${(bytes / 1024 ** 2).toLocaleString('ru-RU', {maximumFractionDigits:1})} МБ`;
     }
-
-    async function api(url, opts = {}) {
-      const res = await fetch(url, {
-        ...opts,
-        headers: { ...(opts.headers || {}), "X-Admin-Token": token },
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+    function saveToken(value) {
+      try { if (value) sessionStorage.setItem('rag_admin_token', value); else sessionStorage.removeItem('rag_admin_token'); } catch {}
+    }
+    function clearSession(message = '') {
+      revision++; authenticated = false; token = ''; files = []; logEntries = [];
+      logController?.abort(); logController = undefined; saveToken('');
+      $('adminContent').hidden = true; $('authPanel').hidden = false;
+      $('headingActions').hidden = true; $('logoutBtn').hidden = true;
+      $('session').classList.remove('online'); $('sessionText').textContent = 'Ожидание входа';
+      $('fileCount').textContent = '—'; $('tokenInput').value = '';
+      $('filesBody').replaceChildren(); $('logsBody').replaceChildren();
+      $('exportLogs').disabled = true;
+      if (message) showStatus(message, 'err'); else $('statusBox').hidden = true;
+    }
+    async function api(url, options = {}) {
+      const requestRevision = revision;
+      const response = await fetch(url, {...options, cache:'no-store', headers:{...options.headers, 'X-Admin-Token':token}});
+      const data = await response.json().catch(() => ({}));
+      if (requestRevision !== revision) throw new Error('Сеанс завершён');
+      if (response.status === 401) {
+        clearSession('Токен не принят. Введите действующий токен администратора.');
+        throw new Error('Токен не принят. Введите действующий токен администратора.');
+      }
+      if (!response.ok) {
+        const detail = typeof data.detail === 'string' ? data.detail : `Ошибка запроса (HTTP ${response.status})`;
+        throw new Error(detail);
+      }
       return data;
     }
-
+    function renderFiles() {
+      const search = $('fileSearch').value.trim().toLocaleLowerCase('ru-RU');
+      const category = $('categoryFilter').value;
+      const visible = files.filter(file => (!category || file.category === category) && `${file.source} ${file.category}`.toLocaleLowerCase('ru-RU').includes(search));
+      $('filesShown').textContent = `Показано ${number(visible.length)} из ${number(files.length)}`;
+      if (!visible.length) {
+        $('filesBody').innerHTML = `<tr><td colspan="6" class="empty"><strong>${files.length ? 'Документы не найдены' : 'Добавьте первый документ'}</strong>${files.length ? 'Измените запрос или выберите другой раздел.' : 'Загрузите файлы, чтобы ассистент мог находить в них ответы.'}</td></tr>`;
+        return;
+      }
+      $('filesBody').innerHTML = visible.map(file => {
+        const name = file.source.split('/').pop();
+        const indexed = file.on_disk && file.indexed;
+        const label = indexed ? 'В индексе' : file.on_disk ? 'Ожидает индексации' : 'Только в индексе';
+        return `<tr><td><div class="file-name"><span class="file-symbol">${icon('file')}</span><div><div class="file-title">${esc(name)}</div><div class="file-path">${esc(file.source)}</div></div></div></td><td><span class="category-pill">${esc(file.category || 'Общее')}</span></td><td class="numeric">${file.on_disk ? formatBytes(file.size_bytes) : '—'}</td><td class="numeric">${number(file.chunks)}</td><td><span class="badge ${indexed ? 'good' : 'warn'}"><span class="dot"></span>${label}</span></td><td><button class="quiet delete-file" type="button" data-delete="${esc(file.source)}" aria-label="Удалить ${esc(file.source)}" title="Удалить документ" ${busy ? 'disabled' : ''}>${icon('trash')}</button></td></tr>`;
+      }).join('');
+    }
     async function loadFiles() {
-      if (!token) return;
-      try {
-        const files = await api("/api/v1/admin/files");
-        mainArea.style.display = "block";
-        tableCard.style.display = "block";
-
-        const totalChunks = files.reduce((acc, f) => acc + f.chunks, 0);
-        statsLabel.textContent = `Файлов: ${files.length} · Чанков в Qdrant: ${totalChunks}`;
-
-        if (!files.length) {
-          filesBody.innerHTML = '<tr><td colspan="6" class="empty">База пуста — загрузите первый файл выше</td></tr>';
-          return;
-        }
-
-        filesBody.innerHTML = files.map((f) => {
-          const statusBadge = f.on_disk && f.indexed
-            ? '<span class="badge ok">В индексе</span>'
-            : f.on_disk
-              ? '<span class="badge warn">Не проиндексирован</span>'
-              : '<span class="badge warn">Только в Qdrant</span>';
-          return `
-            <tr>
-              <td><code>${escapeHtml(f.source)}</code></td>
-              <td>${escapeHtml(f.category)}</td>
-              <td>${formatBytes(f.size_bytes)}</td>
-              <td>${f.chunks}</td>
-              <td>${statusBadge}</td>
-              <td style="text-align:right;">
-                <button class="danger" data-delete="${escapeHtml(f.source)}">Удалить</button>
-              </td>
-            </tr>
-          `;
-        }).join("");
-      } catch (err) {
-        mainArea.style.display = "none";
-        tableCard.style.display = "none";
-        showStatus(err.message, "err");
-      }
+      const data = await api('/api/v1/admin/files');
+      files = data;
+      const indexed = files.filter(file => file.on_disk && file.indexed).length;
+      $('statFiles').textContent = $('fileCount').textContent = number(files.length);
+      $('statIndexed').textContent = number(indexed);
+      $('statIndexCaption').textContent = files.length ? `${Math.round(indexed / files.length * 100)}% документов готовы к поиску` : 'Загрузите документы для поиска';
+      $('statChunks').textContent = number(files.reduce((sum, file) => sum + file.chunks, 0));
+      $('statSize').textContent = formatBytes(files.reduce((sum, file) => sum + (file.on_disk ? file.size_bytes : 0), 0));
+      $('statsLabel').textContent = `${number(files.length)} в базе`;
+      const selected = $('categoryFilter').value;
+      $('categoryFilter').innerHTML = '<option value="">Все разделы</option>' + [...new Set(files.map(file => file.category))].sort().map(category => `<option value="${esc(category)}">${esc(category || 'Общее')}</option>`).join('');
+      $('categoryFilter').value = selected;
+      if ($('categoryFilter').selectedIndex < 0) $('categoryFilter').value = '';
+      $('filesUpdated').textContent = `Обновлено в ${time(Date.now())}`;
+      renderFiles();
     }
-
-    async function uploadFiles(fileList) {
-      if (!fileList || !fileList.length) return;
-      const form = new FormData();
-      form.append("category", categoryInput.value.trim());
-      for (const f of fileList) form.append("files", f);
-
-      showStatus(`Загрузка и индексация (${fileList.length} файл.)…`, "info");
-      reindexBtn.disabled = true;
+    async function signIn() {
+      if (busy || $('saveTokenBtn').disabled) return;
+      const entered = $('tokenInput').value.trim();
+      if (!entered) return;
+      token = entered;
+      $('saveTokenBtn').disabled = true;
       try {
-        const res = await api("/api/v1/admin/files", { method: "POST", body: form });
-        showStatus(
-          `Готово: загружено файлов ${res.uploaded.length}, добавлено чанков ${res.total_chunks_added}`,
-          "ok"
-        );
         await loadFiles();
-      } catch (err) {
-        showStatus(err.message, "err");
-      } finally {
-        reindexBtn.disabled = false;
-        fileInput.value = "";
-      }
+        authenticated = true; saveToken(token); $('tokenInput').value = '';
+        $('authPanel').hidden = true; $('adminContent').hidden = false;
+        $('headingActions').hidden = false; $('logoutBtn').hidden = false;
+        $('session').classList.add('online'); $('sessionText').textContent = 'Сеанс администратора';
+        $('statusBox').hidden = true;
+        switchTab(activeTab);
+      } catch (error) { showStatus(error.message, 'err'); }
+      finally { $('saveTokenBtn').disabled = false; }
     }
-
-    document.getElementById("saveTokenBtn").addEventListener("click", () => {
-      token = tokenInput.value.trim();
-      sessionStorage.setItem("rag_admin_token", token);
-      showStatus("Подключение…", "info");
-      loadFiles().then(() => {
-        if (mainArea.style.display === "block") showStatus("Токен принят", "ok");
+    function switchTab(tab) {
+      activeTab = tab;
+      for (const name of ['knowledge', 'logs']) {
+        $(`tab-${name}`).setAttribute('aria-selected', String(name === tab));
+        $(`tab-${name}`).tabIndex = name === tab ? 0 : -1;
+        $(name).hidden = name !== tab;
+      }
+      const logs = tab === 'logs';
+      $('pageTitle').textContent = $('breadcrumb').textContent = logs ? 'Логи' : 'База знаний';
+      $('pageSubtitle').textContent = logs ? 'Следите за работой сервисов и находите причины ошибок.' : 'Управляйте документами, на основе которых отвечает ассистент.';
+      $('reindexBtn').hidden = logs;
+      if (logs && authenticated) loadLogs();
+      else { logController?.abort(); logController = undefined; }
+    }
+    function setBusy(value) {
+      busy = value;
+      for (const id of ['pickBtn','dropzone','categoryInput','reindexBtn','refreshBtn']) $(id).disabled = value;
+      for (const button of document.querySelectorAll('[data-delete]')) button.disabled = value;
+    }
+    function confirmAction(title, message, label) {
+      const dialog = $('confirmDialog');
+      $('confirmTitle').textContent = title; $('confirmText').textContent = message;
+      $('confirmButton').textContent = label; dialog.returnValue = '';
+      return new Promise(resolve => {
+        dialog.addEventListener('close', () => resolve(dialog.returnValue === 'confirm'), {once:true});
+        dialog.showModal();
       });
-    });
-
-    document.getElementById("pickBtn").addEventListener("click", () => fileInput.click());
-    dropzone.addEventListener("click", () => fileInput.click());
-    fileInput.addEventListener("change", () => uploadFiles(fileInput.files));
-
-    dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("drag"); });
-    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("drag"));
-    dropzone.addEventListener("drop", (e) => {
-      e.preventDefault();
-      dropzone.classList.remove("drag");
-      uploadFiles(e.dataTransfer.files);
-    });
-
-    filesBody.addEventListener("click", async (e) => {
-      const btn = e.target.closest("button[data-delete]");
-      if (!btn) return;
-      const src = btn.getAttribute("data-delete");
-      if (!confirm(`Удалить «${src}» с диска и из индекса Qdrant?`)) return;
-
-      showStatus(`Удаление ${src}…`, "info");
-      try {
-        await api(`/api/v1/admin/files?source=${encodeURIComponent(src)}`, { method: "DELETE" });
-        showStatus(`Файл ${src} удалён`, "ok");
-        await loadFiles();
-      } catch (err) {
-        showStatus(err.message, "err");
+    }
+    async function uploadFiles(fileList) {
+      if (busy || !authenticated || !fileList?.length) return;
+      const selection = [...fileList];
+      if (selection.some(file => !/\.(md|txt)$/i.test(file.name))) {
+        showStatus('Выберите файлы в формате .md или .txt.', 'err'); $('fileInput').value = ''; return;
       }
-    });
-
-    refreshBtn.addEventListener("click", loadFiles);
-
-    reindexBtn.addEventListener("click", async () => {
-      if (!confirm("Пересобрать всю коллекцию Qdrant с нуля?")) return;
-      showStatus("Идёт полная переиндексация…", "info");
-      reindexBtn.disabled = true;
+      const form = new FormData(); form.append('category', $('categoryInput').value.trim());
+      for (const file of selection) form.append('files', file);
+      setBusy(true); showStatus(`Загружаем и индексируем документы: ${selection.length}…`);
       try {
-        const res = await api("/api/v1/admin/reindex", { method: "POST" });
-        showStatus(
-          `Переиндексация завершена: файлов ${res.files_indexed}, чанков ${res.total_chunks}`,
-          "ok"
-        );
+        const result = await api('/api/v1/admin/files', {method:'POST', body:form});
+        showStatus(`Загружено документов: ${result.uploaded.length}. Добавлено фрагментов: ${number(result.total_chunks_added)}.`, 'ok');
         await loadFiles();
-      } catch (err) {
-        showStatus(err.message, "err");
-      } finally {
-        reindexBtn.disabled = false;
+      } catch (error) { showStatus(error.message, 'err'); }
+      finally { setBusy(false); $('fileInput').value = ''; }
+    }
+    function renderLogs(payload) {
+      logEntries = payload.entries;
+      $('logsError').hidden = true;
+      $('logsUpdated').textContent = `Обновлено в ${time(payload.updated_at)}`;
+      $('logState').classList.toggle('active', payload.configured && $('autoRefresh').checked);
+      $('logStateText').textContent = !payload.configured ? 'Запись журнала не настроена' : $('autoRefresh').checked ? 'Обновление каждые 5 секунд' : 'Автообновление выключено';
+      $('exportLogs').disabled = logEntries.length === 0;
+      $('logsNote').textContent = `${number(logEntries.length)} событий · Сначала новые. Нажмите на строку для подробностей.${payload.truncated ? ' Показана последняя часть журнала; уточните фильтры.' : ''}`;
+      const expanded = new Set([...$('logsBody').querySelectorAll('details[open]')].map(row => row.dataset.key));
+      const scroll = $('logsBody').scrollTop;
+      if (!logEntries.length) {
+        $('logsBody').innerHTML = `<div class="empty"><strong>${payload.configured ? 'Событий пока нет' : 'Подключите журнал сервисов'}</strong>${payload.configured ? 'Измените фильтры или дождитесь новых запросов.' : 'При запуске через обновлённый compose.yaml журнал подключается автоматически.'}</div>`;
+        return;
       }
+      $('logsBody').innerHTML = logEntries.map(record => {
+        const key = `${record.timestamp}|${record.service}|${record.request_id}|${record.event}`;
+        const level = ['DEBUG','INFO','WARNING','ERROR','CRITICAL'].includes(record.level) ? record.level : 'INFO';
+        const context = [record.method, record.path, record.status, record.duration_ms != null ? `${record.duration_ms} мс` : ''].filter(value => value != null && value !== '').join(' · ');
+        return `<details class="log-row" data-key="${esc(key)}" ${expanded.has(key) ? 'open' : ''}><summary><time class="log-time" datetime="${esc(record.timestamp)}">${esc(dateTime(record.timestamp))}</time><span class="level ${level}">${level}</span><span class="log-service">${esc(record.service)}</span><span class="log-event">${esc(record.event)}${context ? `<br><span>${esc(context)}</span>` : ''}</span><svg class="icon log-chevron"><use href="#i-chevron"/></svg></summary><pre class="log-json">${esc(JSON.stringify(record, null, 2))}</pre></details>`;
+      }).join('');
+      $('logsBody').scrollTop = scroll;
+    }
+    async function loadLogs() {
+      if (!authenticated || activeTab !== 'logs') return;
+      logController?.abort();
+      const controller = new AbortController(); logController = controller;
+      const query = new URLSearchParams({level:$('logLevel').value, limit:'200', search:$('logSearch').value.trim()});
+      if ($('logService').value) query.set('service', $('logService').value);
+      try {
+        const payload = await api(`/api/v1/admin/logs?${query}`, {signal:controller.signal});
+        if (!controller.signal.aborted) renderLogs(payload);
+      } catch (error) {
+        if (controller.signal.aborted || !authenticated) return;
+        $('logsError').textContent = error.message; $('logsError').hidden = false;
+        $('logState').classList.remove('active'); $('logStateText').textContent = 'Не удалось обновить журнал';
+      } finally { if (logController === controller) logController = undefined; }
+    }
+    $('authForm').addEventListener('submit', event => { event.preventDefault(); signIn(); });
+    $('logoutBtn').addEventListener('click', () => { clearSession(); $('tokenInput').focus(); });
+    for (const tab of ['knowledge', 'logs']) $(`tab-${tab}`).addEventListener('click', () => switchTab(tab));
+    document.querySelector('.nav').addEventListener('keydown', event => {
+      if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key)) return;
+      event.preventDefault(); const tab = event.key === 'Home' ? 'knowledge' : event.key === 'End' ? 'logs' : activeTab === 'knowledge' ? 'logs' : 'knowledge';
+      switchTab(tab); $(`tab-${tab}`).focus();
     });
-
-    if (token) loadFiles();
+    $('fileSearch').addEventListener('input', renderFiles); $('categoryFilter').addEventListener('change', renderFiles);
+    $('pickBtn').addEventListener('click', () => $('fileInput').click());
+    $('dropzone').addEventListener('click', () => $('fileInput').click());
+    $('fileInput').addEventListener('change', () => uploadFiles($('fileInput').files));
+    $('dropzone').addEventListener('dragover', event => { event.preventDefault(); if (!busy) $('dropzone').classList.add('drag'); });
+    $('dropzone').addEventListener('dragleave', () => $('dropzone').classList.remove('drag'));
+    $('dropzone').addEventListener('drop', event => { event.preventDefault(); $('dropzone').classList.remove('drag'); uploadFiles(event.dataTransfer.files); });
+    $('filesBody').addEventListener('click', async event => {
+      const button = event.target.closest('button[data-delete]');
+      if (!button || busy) return;
+      const source = button.dataset.delete;
+      if (!await confirmAction('Удалить документ?', `«${source}» будет удалён из хранилища и поискового индекса.`, 'Удалить')) return;
+      if (!authenticated || busy) return;
+      setBusy(true); showStatus('Удаляем документ…');
+      try { await api(`/api/v1/admin/files?source=${encodeURIComponent(source)}`, {method:'DELETE'}); showStatus('Документ удалён.', 'ok'); await loadFiles(); }
+      catch (error) { showStatus(error.message, 'err'); }
+      finally { setBusy(false); }
+    });
+    $('reindexBtn').addEventListener('click', async () => {
+      if (busy || !authenticated) return;
+      if (!await confirmAction('Перестроить поисковый индекс?', 'Индекс будет заново собран из всех сохранённых документов. Во время операции поиск может быть временно недоступен.', 'Переиндексировать')) return;
+      if (!authenticated || busy) return;
+      setBusy(true); showStatus('Перестраиваем поисковый индекс…');
+      try { const result = await api('/api/v1/admin/reindex', {method:'POST'}); showStatus(`Индекс обновлён. Документов: ${result.files_indexed}, фрагментов: ${number(result.total_chunks)}.`, 'ok'); await loadFiles(); }
+      catch (error) { showStatus(error.message, 'err'); }
+      finally { setBusy(false); }
+    });
+    $('refreshBtn').addEventListener('click', async () => {
+      if (busy || !authenticated) return;
+      if (activeTab === 'logs') { await loadLogs(); return; }
+      $('refreshBtn').disabled = true;
+      try { await loadFiles(); showStatus('Список документов обновлён.', 'ok'); }
+      catch (error) { showStatus(error.message, 'err'); }
+      finally { $('refreshBtn').disabled = busy; }
+    });
+    $('logService').addEventListener('change', loadLogs); $('logLevel').addEventListener('change', loadLogs);
+    $('logSearch').addEventListener('input', () => { clearTimeout(logTimer); logTimer = setTimeout(loadLogs, 300); });
+    $('autoRefresh').addEventListener('change', loadLogs);
+    $('exportLogs').addEventListener('click', () => {
+      if (!logEntries.length || !authenticated) return;
+      const url = URL.createObjectURL(new Blob([logEntries.map(record => JSON.stringify(record)).join('\n') + '\n'], {type:'application/x-ndjson;charset=utf-8'}));
+      const link = document.createElement('a'); link.href = url; link.download = `partner-agent-logs-${new Date().toISOString().replace(/[:.]/g,'-')}.jsonl`;
+      document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    setInterval(() => { if (authenticated && activeTab === 'logs' && $('autoRefresh').checked && !document.hidden && !logController) loadLogs(); }, 5000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && $('autoRefresh').checked && activeTab === 'logs') loadLogs(); });
+    if (storageToken) signIn();
   </script>
 </body>
 </html>

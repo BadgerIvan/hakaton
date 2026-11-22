@@ -3,6 +3,7 @@ name: partner-agent
 x-app-environment: &app-environment
   DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-partner}:${POSTGRES_PASSWORD:-partner_local_password}@postgres:5432/${POSTGRES_DB:-partner}
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  LOG_DIR: /app/logs
   ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173,http://127.0.0.1:5173}
 
 x-log-policy: &log-policy
@@ -36,6 +37,8 @@ services:
     environment:
       <<: *app-environment
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    volumes:
+      - app_logs:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
@@ -58,6 +61,8 @@ services:
       HISTORY_TURNS: ${HISTORY_TURNS:-10}
       HISTORY_MAX_CHARS: ${HISTORY_MAX_CHARS:-12000}
       GENERATION_TIMEOUT: ${GENERATION_TIMEOUT:-110}
+    volumes:
+      - app_logs:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
@@ -122,6 +127,7 @@ services:
       context: .
       dockerfile: services/rag_service/Dockerfile
     environment:
+      LOG_DIR: /app/logs
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       OLLAMA_URL: http://ollama:11434
       QDRANT_URL: http://qdrant:6333
@@ -136,6 +142,7 @@ services:
       LLM_REASONING: 'false'
       RERANK_THREADS: ${RERANK_THREADS:-2}
     volumes:
+      - app_logs:/app/logs
       - rag_data:/app/data
       - fastembed_cache:/app/.fastembed_cache
     depends_on:
@@ -146,6 +153,8 @@ services:
     restart: unless-stopped
 
 volumes:
+  app_logs:
+    name: ${LOGS_VOLUME_NAME:-partner-agent_app_logs}
   postgres_data:
     name: ${POSTGRES_VOLUME_NAME:-partner-agent_postgres_data}
   ollama_models:

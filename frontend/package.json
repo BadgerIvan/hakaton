@@ -13,7 +13,9 @@
     "test:report": "playwright show-report",
     "test:unit": "node --import tsx --test src/lib/*.test.ts",
     "test:components": "vitest run",
-    "test:types": "tsc -p tsconfig.tests.json --noEmit"
+    "test:types": "tsc -p tsconfig.tests.json --noEmit",
+    "test:admin": "playwright test --config=playwright.admin.config.ts",
+    "test:admin:dom": "node --test tests/admin.dom.test.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.77.0",
