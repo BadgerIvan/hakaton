@@ -103,7 +103,7 @@ SSE бэкенда передаёт `meta` (ID диалога, запроса и
 
 Сессия - HttpOnly-cookie `partner_session`, срок 7 дней. Для изменяющих запросов нужны `X-Requested-With: PartnerAgent`, `X-CSRF-Token` из `/auth/me` и разрешённый Origin. Вход и регистрация не требуют CSRF, но требуют `X-Requested-With`. Cookie передаётся с `credentials: include`. Пароль и идентификатор cookie не возвращаются в JSON.
 
-## Логи и тесты
+## Тесты
 
 ```bash
 python -m pip install -r requirements-test.txt

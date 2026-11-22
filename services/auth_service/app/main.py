@@ -172,10 +172,10 @@ def create_app(settings: Settings | None = None):
     async def protect_auth_requests(request: Request, call_next):
         if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
             origin = request.headers.get("origin")
-            if origin and origin.rstrip("/") not in settings.allowed_origins:
-                return JSONResponse(
-                    {"detail": "Источник запроса не разрешён"}, status_code=403
-                )
+            clean_origin = origin.rstrip("/") if origin else ""
+            is_tunnel = clean_origin.startswith("https://") and clean_origin.endswith(".trycloudflare.com")
+            if clean_origin and clean_origin not in settings.allowed_origins and not is_tunnel:
+                return JSONResponse({"detail": "Источник запроса не разрешён"}, status_code=403)
             if request.headers.get("x-requested-with") != "PartnerAgent":
                 return JSONResponse(
                     {"detail": "Необходим заголовок X-Requested-With"}, status_code=403
