@@ -5,13 +5,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY services/rag_service/requirements.txt .
+COPY services/common /opt/partner-observability
+RUN pip install --no-cache-dir /opt/partner-observability -r requirements.txt
 
-COPY app ./app
-COPY reindex.py ./reindex.py
+COPY services/rag_service/app ./app
+COPY services/rag_service/reindex.py ./reindex.py
 RUN mkdir -p /app/data
 
 EXPOSE 8001
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--no-access-log"]

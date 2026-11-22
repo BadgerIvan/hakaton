@@ -1,0 +1,7 @@
+-e services/common
+-r services/auth_service/requirements.txt
+-r services/backend_service/requirements.txt
+-r services/rag_service/requirements.txt
+-r parse_service/requirements.txt
+pytest==9.2.0
+pytest-cov==7.1.0

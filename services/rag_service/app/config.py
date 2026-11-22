@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     history_limit: int = 6
 
     rerank_enabled: bool = True
+    rerank_threads: int = 2
     rerank_model: str = "jinaai/jina-reranker-v2-base-multilingual"
     rerank_high_threshold: float = 0.45
     rerank_low_threshold: float = 0.20

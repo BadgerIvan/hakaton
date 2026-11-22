@@ -1,0 +1,9 @@
+services:
+  frontend:
+    ports: ['127.0.0.1:18080:80']
+  auth:
+    environment:
+      ALLOWED_ORIGINS: http://frontend,http://localhost:18080,http://127.0.0.1:18080
+  backend:
+    environment:
+      ALLOWED_ORIGINS: http://frontend,http://localhost:18080,http://127.0.0.1:18080

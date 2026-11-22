@@ -13,6 +13,8 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from partner_observability import RequestLogMiddleware, configure_logging, propagate_request_id
+
 from .config import Settings
 from .database import Conversation, Message, build_engine
 from .rag_client import RagProtocolError, event, normalize_sources, read_events
@@ -29,6 +31,7 @@ class TurnCancelled(Exception):
 
 
 def create_app(settings=None, *, transport=None):
+    configure_logging("backend")
     settings = settings or Settings()
     if settings.history_turns < 0 or settings.history_max_chars < 0 or settings.generation_timeout <= 0:
         raise ValueError('Invalid history or timeout configuration')
@@ -37,7 +40,7 @@ def create_app(settings=None, *, transport=None):
 
     @asynccontextmanager
     async def lifespan(application):
-        async with httpx.AsyncClient(transport=transport, trust_env=False, timeout=httpx.Timeout(
+        async with httpx.AsyncClient(transport=transport, trust_env=False, event_hooks={'request': [propagate_request_id]}, timeout=httpx.Timeout(
             settings.generation_timeout, connect=5, pool=5), limits=httpx.Limits(
             max_connections=30, max_keepalive_connections=10)) as client:
             application.state.http = client
@@ -64,7 +67,9 @@ def create_app(settings=None, *, transport=None):
 
     application.add_middleware(CORSMiddleware, allow_origins=list(settings.allowed_origins),
         allow_credentials=True, allow_methods=['GET', 'POST', 'DELETE', 'OPTIONS'],
-        allow_headers=['Content-Type', 'X-CSRF-Token', 'X-Requested-With'])
+        allow_headers=['Content-Type', 'X-CSRF-Token', 'X-Requested-With', 'X-Request-ID'], expose_headers=['X-Request-ID'])
+
+    application.add_middleware(RequestLogMiddleware)
 
     @application.get('/health')
     async def health():
@@ -136,6 +141,7 @@ def create_app(settings=None, *, transport=None):
         turn = await prepare_turn(sessions, user['id'], body, settings)
         if turn.replayed:
             return {**turn.metadata(), 'answer': turn.content, 'sources': turn.sources}
+        log.info('generation.started', extra={'generation_id': turn.request_id, 'conversation_id': turn.conversation_id})
         content, sources, status, error = '', [], 'error', 'Не удалось завершить ответ'
         try:
             async with asyncio.timeout(settings.generation_timeout):
@@ -143,20 +149,22 @@ def create_app(settings=None, *, transport=None):
                     json={'question': body.question, 'history': turn.history})
                 response.raise_for_status()
                 payload = response.json()
-                content = payload['answer']
-                if not isinstance(content, str) or not content.strip() or len(content) > settings.max_answer_chars:
+                answer = payload['answer']
+                if not isinstance(answer, str) or not answer.strip() or len(answer) > settings.max_answer_chars:
                     raise RagProtocolError('Invalid answer')
-                sources = normalize_sources(payload['sources'])
+                normalized = normalize_sources(payload['sources'])
+                content, sources = answer, normalized
                 status, error = 'complete', None
         except asyncio.CancelledError:
             status, error = 'cancelled', 'Соединение прервано'
             raise
         except (httpx.HTTPError, TimeoutError, ValueError, TypeError, KeyError, RagProtocolError):
-            log.warning('RAG request failed for request %s', turn.request_id)
+            log.warning('generation.upstream_failed', exc_info=True, extra={'generation_id': turn.request_id})
             raise HTTPException(502, 'RAG не смог завершить ответ. Повторите запрос') from None
         finally:
             with anyio.CancelScope(shield=True):
                 saved = await persist_turn(sessions, turn, status, content, sources, error)
+                log.info('generation.finished', extra={'generation_id': turn.request_id, 'outcome': status, 'answer_chars': len(content), 'sources_count': len(sources)})
         if not saved:
             raise HTTPException(409, 'Запрос остановлен или диалог удалён')
         return {**turn.metadata(), 'answer': content, 'sources': sources}
@@ -166,6 +174,7 @@ def create_app(settings=None, *, transport=None):
         turn = await prepare_turn(sessions, user['id'], body, settings)
 
         async def generate():
+            log.info('generation.started', extra={'generation_id': turn.request_id, 'replayed': turn.replayed})
             content, sources = '', []
             status, error = 'cancelled', 'Соединение прервано'
             checkpoint = time.monotonic()
@@ -215,12 +224,13 @@ def create_app(settings=None, *, transport=None):
                 yield event('error', {'detail': error})
             except (httpx.HTTPError, TimeoutError, ValueError, TypeError, RagProtocolError):
                 status, error = 'error', 'Не удалось завершить ответ. Повторите запрос'
-                log.warning('RAG stream failed for request %s', turn.request_id)
+                log.warning('generation.stream_failed', exc_info=True, extra={'generation_id': turn.request_id})
                 yield event('error', {'detail': error})
             finally:
                 if not turn.replayed:
                     with anyio.CancelScope(shield=True):
                         await persist_turn(sessions, turn, status, content, sources, error)
+                log.info('generation.finished', extra={'generation_id': turn.request_id, 'outcome': 'replayed' if turn.replayed else status, 'answer_chars': len(content), 'sources_count': len(sources)})
 
         return StreamingResponse(generate(), media_type='text/event-stream', headers={
             'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no'})

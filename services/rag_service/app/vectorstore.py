@@ -1,4 +1,5 @@
 import time
+from functools import lru_cache
 from langchain_ollama import OllamaEmbeddings
 from langchain_qdrant import FastEmbedSparse, QdrantVectorStore, RetrievalMode
 from qdrant_client import QdrantClient
@@ -24,12 +25,14 @@ qdrant_client = QdrantClient(url=settings.qdrant_url)
 embedder = OllamaEmbeddings(
     model=settings.embed_model,
     base_url=settings.ollama_url,
+    client_kwargs={"trust_env": False},
 )
 
-sparse_embedder = FastEmbedSparse(
-    model_name=settings.sparse_model,
-    language=settings.bm25_language,
-)
+@lru_cache(maxsize=1)
+def get_sparse_embedder():
+    # Download/load only when indexing or retrieval first needs BM25.
+    return FastEmbedSparse(model_name=settings.sparse_model, language=settings.bm25_language,
+                           cache_dir=settings.fastembed_cache_path, threads=settings.rerank_threads)
 
 
 def _collection_params() -> dict:
@@ -97,7 +100,7 @@ def get_vectorstore() -> QdrantVectorStore:
         client=qdrant_client,
         collection_name=settings.qdrant_collection,
         embedding=embedder,
-        sparse_embedding=sparse_embedder,
+        sparse_embedding=get_sparse_embedder(),
         retrieval_mode=RetrievalMode.HYBRID,
         vector_name=DENSE_VECTOR_NAME,
         sparse_vector_name=SPARSE_VECTOR_NAME,

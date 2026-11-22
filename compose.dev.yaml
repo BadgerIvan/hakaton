@@ -1,4 +1,3 @@
-# Optional localhost-only ports for local Python/Vite development and DBeaver.
 services:
   postgres:
     ports:

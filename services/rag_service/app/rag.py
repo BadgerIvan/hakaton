@@ -10,6 +10,8 @@ from fastembed.rerank.cross_encoder import TextCrossEncoder
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
+from partner_observability import propagate_request_id
+
 from app.config import settings
 from app.schemas import ChatMessage, SourceChunk
 from app.vectorstore import get_vectorstore
@@ -95,6 +97,9 @@ prompt_template = ChatPromptTemplate.from_messages(
 llm = ChatOllama(
     model=settings.llm_model,
     base_url=settings.ollama_url,
+    reasoning=settings.llm_reasoning,
+    client_kwargs={"trust_env": False},
+    async_client_kwargs={"event_hooks": {"request": [propagate_request_id]}},
     temperature=0,
     num_ctx=settings.num_ctx,
 )
@@ -102,6 +107,9 @@ llm = ChatOllama(
 rewrite_llm = ChatOllama(
     model=settings.llm_model,
     base_url=settings.ollama_url,
+    reasoning=settings.llm_reasoning,
+    client_kwargs={"trust_env": False},
+    async_client_kwargs={"event_hooks": {"request": [propagate_request_id]}},
     temperature=0,
     num_ctx=settings.num_ctx,
     num_predict=120,
@@ -214,7 +222,7 @@ def _sanitize_user_query(text: str) -> tuple[str, bool]:
             clean_lines.append(" ".join(kept_sentences))
 
     cleaned = " ".join(clean_lines).strip()
-    if len(_MEANINGFUL_CHARS_RE.findall(cleaned)) < 3:
+    if not _MEANINGFUL_CHARS_RE.search(cleaned) or (had_injection and len(_MEANINGFUL_CHARS_RE.findall(cleaned)) < 3):
         return "", had_injection
     return cleaned, had_injection
 
@@ -385,6 +393,7 @@ def get_reranker() -> TextCrossEncoder:
     return TextCrossEncoder(
         model_name=settings.rerank_model,
         cache_dir=settings.fastembed_cache_path,
+        threads=settings.rerank_threads,
     )
 
 
@@ -487,10 +496,10 @@ async def rewrite_query(question: str, history: list[ChatMessage]) -> str:
         rewritten = _THINK_RE.sub("", str(response.content)).strip().strip('«»"\'')
         rewritten = rewritten.splitlines()[0].strip() if rewritten else ""
         if 2 <= len(rewritten) <= 400 and not _is_injection_attempt(rewritten):
-            logger.info("Query rewrite: %r -> %r", question, rewritten)
+            logger.info("rag.query_rewritten")
             return rewritten
     except Exception as exc:
-        logger.warning("Query rewrite fallback на исходный запрос: %s", exc)
+        logger.warning("rag.rewrite_fallback", exc_info=True)
 
     return question
 
@@ -511,33 +520,20 @@ async def retrieve_context(
     clean_question, had_injection = _sanitize_user_query(question)
     if had_injection:
         if not clean_question:
-            logger.warning("Blocked pure prompt injection: %r", question[:200])
+            logger.warning("rag.injection_blocked")
             return "", [], "none", question
-        logger.warning(
-            "Sanitized hybrid prompt injection: %r -> %r",
-            question[:200],
-            clean_question[:200],
-        )
+        logger.warning("rag.injection_sanitized")
 
     search_query = await rewrite_query(clean_question, history)
-    store = get_vectorstore()
+    store = await asyncio.to_thread(get_vectorstore)
     fetch_k = settings.retrieval_k if settings.rerank_enabled else settings.top_k
-    results = store.similarity_search_with_score(search_query, k=fetch_k)
+    results = await asyncio.to_thread(store.similarity_search_with_score, search_query, k=fetch_k)
 
     if not results:
         return "", [], "none", search_query
 
     if settings.rerank_enabled:
-        reranker = get_reranker()
-        docs_only = [doc for doc, _ in results]
-        raw_scores = list(
-            reranker.rerank(search_query, [doc.page_content for doc in docs_only])
-        )
-        scored = sorted(
-            zip(docs_only, (_sigmoid(float(s)) for s in raw_scores)),
-            key=lambda item: item[1],
-            reverse=True,
-        )
+        scored = await asyncio.to_thread(_rerank_docs, search_query, [doc for doc, _ in results])
 
         best_score = scored[0][1] if scored else 0.0
         if best_score < settings.rerank_low_threshold:
@@ -581,10 +577,7 @@ async def retrieve_context(
         raw_chunk = _strip_search_header(doc.page_content)
         clean_chunk, had_doc_injection = _sanitize_context_chunk(raw_chunk)
         if had_doc_injection:
-            logger.warning(
-                "Neutralized indirect prompt injection in chunk (source=%r)",
-                source_name,
-            )
+            logger.warning("rag.document_injection_sanitized")
         if not clean_chunk:
             continue
 

@@ -18,6 +18,8 @@ from sqlalchemy.dialects.postgresql import insert as postgres_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
+from partner_observability import RequestLogMiddleware, configure_logging, propagate_request_id
+
 from .config import Settings
 from .database import RateLimit, User, UserSession, build_engine
 
@@ -150,6 +152,7 @@ def session_view(user: User, session: UserSession) -> SessionView:
 
 
 def create_app(settings: Settings | None = None):
+    configure_logging("auth")
     settings = settings or Settings()
     engine = build_engine(settings.database_url)
 
@@ -187,8 +190,11 @@ def create_app(settings: Settings | None = None):
         allow_origins=list(settings.allowed_origins),
         allow_credentials=True,
         allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Content-Type", "X-CSRF-Token", "X-Requested-With"],
+        allow_headers=["Content-Type", "X-CSRF-Token", "X-Requested-With", "X-Request-ID"],
+        expose_headers=["X-Request-ID"],
     )
+
+    application.add_middleware(RequestLogMiddleware)
 
     @application.get("/health")
     def health(database: Database):

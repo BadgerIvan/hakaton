@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -8,6 +9,11 @@ import httpx
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
+
+from partner_observability import RequestLogMiddleware, configure_logging, propagate_request_id
+
+configure_logging("rag")
+logger = logging.getLogger(__name__)
 
 from app.config import settings
 from app.ingest import (
@@ -54,8 +60,10 @@ app.add_middleware(
 )
 
 
+app.add_middleware(RequestLogMiddleware)
+
 def verify_admin(x_admin_token: str | None = Header(default=None)) -> None:
-    if not x_admin_token or not secrets.compare_digest(x_admin_token, settings.admin_token):
+    if not x_admin_token or not secrets.compare_digest(x_admin_token.encode(), settings.admin_token.encode()):
         raise HTTPException(status_code=401, detail="Неверный или отсутствует X-Admin-Token")
 
 
@@ -72,7 +80,7 @@ async def health():
         qdrant_ok = False
 
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=5.0, trust_env=False, event_hooks={'request': [propagate_request_id]}) as client:
             resp = await client.get(f"{settings.ollama_url}/api/tags")
             resp.raise_for_status()
             installed_models = [m["name"] for m in resp.json().get("models", [])]
@@ -131,7 +139,10 @@ async def admin_upload_files(
         uploaded: list[DocumentInfo] = []
         total_chunks = 0
         for upload in files:
-            raw = await upload.read()
+            try:
+                raw = await upload.read(settings.max_upload_mb * 1024 * 1024 + 1)
+            finally:
+                await upload.close()
             try:
                 info = await asyncio.to_thread(
                     save_and_index_file,
@@ -141,11 +152,9 @@ async def admin_upload_files(
                 )
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=str(exc))
-            except Exception as exc:
-                raise HTTPException(
-                    status_code=502,
-                    detail=f"Ошибка индексации файла {upload.filename}: {exc}",
-                )
+            except Exception:
+                logger.exception("index.upload_failed")
+                raise HTTPException(status_code=502, detail="Не удалось проиндексировать файл. Проверьте логи RAG") from None
             uploaded.append(info)
             total_chunks += info.chunks
 
@@ -162,8 +171,9 @@ async def admin_delete_file(source: str = Query(..., min_length=1)):
             await asyncio.to_thread(delete_file_and_vectors, source)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
-        except Exception as exc:
-            raise HTTPException(status_code=502, detail=f"Ошибка удаления: {exc}")
+        except Exception:
+            logger.exception("index.delete_failed")
+            raise HTTPException(status_code=502, detail="Не удалось удалить документ. Проверьте логи RAG") from None
         return {"deleted": source}
 
 
@@ -181,11 +191,9 @@ async def admin_reindex():
             return await asyncio.to_thread(index_dataset)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
-        except Exception as exc:
-            raise HTTPException(
-                status_code=502,
-                detail=f"Ошибка индексации (проверьте модель {settings.embed_model}): {exc}",
-            )
+        except Exception:
+            logger.exception("index.rebuild_failed")
+            raise HTTPException(status_code=502, detail="Не удалось обновить индекс. Проверьте логи RAG") from None
 
 
 @app.get("/api/v1/documents", response_model=list[DocumentInfo])
@@ -203,25 +211,28 @@ async def reindex():
             return await asyncio.to_thread(index_dataset)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
-        except Exception as exc:
-            raise HTTPException(
-                status_code=502,
-                detail=f"Ошибка индексации (проверьте модель {settings.embed_model}): {exc}",
-            )
+        except Exception:
+            logger.exception("index.rebuild_failed")
+            raise HTTPException(status_code=502, detail="Не удалось обновить индекс. Проверьте логи RAG") from None
 
 
 @app.post("/api/v1/ask", response_model=AskResponse)
 async def ask(req: AskRequest):
     try:
         answer, sources = await generate_answer(req.question, req.history)
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Ошибка генерации ответа: {exc}")
+    except Exception:
+        logger.exception("rag.answer_failed")
+        raise HTTPException(status_code=502, detail="Не удалось сгенерировать ответ") from None
     return AskResponse(answer=answer, sources=sources)
 
 
 @app.post("/api/v1/ask/stream")
 async def ask_stream(req: AskRequest):
-    sources, token_stream = await stream_answer(req.question, req.history)
+    try:
+        sources, token_stream = await stream_answer(req.question, req.history)
+    except Exception:
+        logger.exception("rag.retrieval_failed")
+        raise HTTPException(status_code=502, detail="Не удалось подготовить ответ") from None
 
     async def event_generator():
         try:
@@ -232,7 +243,7 @@ async def ask_stream(req: AskRequest):
 
             yield "event: done\ndata: {}\n\n"
         except Exception as exc:
-            logger.exception("Ошибка стриминга: %s", exc)
-            yield f"event: error\ndata: {json.dumps({'detail': str(exc)}, ensure_ascii=False)}\n\n"
+            logger.exception("rag.stream_failed")
+            yield f"event: error\ndata: {json.dumps({'detail': 'Не удалось завершить ответ'}, ensure_ascii=False)}\n\n"
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})

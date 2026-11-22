@@ -1,3 +1,6 @@
+import pytest
+pytestmark = pytest.mark.integration
+
 import asyncio
 import json
 import os
@@ -55,6 +58,7 @@ class BackendTests(unittest.TestCase):
             auth_url='http://auth', rag_url='http://rag', history_turns=3, history_max_chars=3000)
         upgrade(self.settings.database_url)
         self.rag_calls = []
+        self.upstream_ids = []
         self.mode = 'success'
         self.gate = None
         self.delay = 0
@@ -69,6 +73,7 @@ class BackendTests(unittest.TestCase):
             'Origin': 'http://localhost:5173'}
 
     async def upstream(self, request):
+        self.upstream_ids.append((request.url.host, request.headers.get("X-Request-ID")))
         if request.url.host == 'auth':
             if self.auth_down:
                 raise httpx.ConnectError('offline', request=request)
@@ -246,6 +251,32 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(self.rag_calls[-1]['history'][0]['content'], 'Вопрос 1')
         self.assertEqual(self.rag_calls[-1]['history'][-1]['role'], 'assistant')
         self.assertEqual(len(self.get(chat).json()['messages']), 10)
+
+
+    def test_request_trace_propagates_to_auth_and_rag(self):
+        chat = self.create()
+        self.upstream_ids.clear()
+        trace = 'trace-' + uuid4().hex
+        response = self.client.post('/api/v1/ask', headers={**self.headers, 'X-Request-ID': trace},
+            json={'conversation_id': chat, 'question': 'Вопрос'})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.headers['X-Request-ID'], trace)
+        self.assertEqual(self.upstream_ids, [('auth', trace), ('rag', trace)])
+
+    def test_invalid_rag_json_leaves_failed_turn_and_allows_retry(self):
+        original = self.upstream
+        async def malformed(request):
+            if request.url.host == 'rag':
+                return httpx.Response(200, json={'answer': 42, 'sources': []})
+            return await original(request)
+        with TestClient(create_app(self.settings, transport=httpx.MockTransport(malformed))) as client:
+            chat = self.create()
+            response = client.post('/api/v1/ask', headers=self.headers,
+                json={'conversation_id': chat, 'question': 'Вопрос'})
+            self.assertEqual(response.status_code, 502)
+        self.assertEqual(self.get(chat).json()['messages'][-1]['status'], 'error')
+        self.assertEqual(self.ask(chat).status_code, 200)
+        self.assertEqual(self.rag_calls[-1]['history'], [])
 
 
 if __name__ == '__main__':

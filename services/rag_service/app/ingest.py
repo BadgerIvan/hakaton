@@ -1,4 +1,6 @@
 import re
+import logging
+from tempfile import NamedTemporaryFile
 from pathlib import Path, PurePosixPath
 
 import yaml
@@ -19,6 +21,7 @@ from app.vectorstore import (
 
 from datetime import date, datetime, timezone
 
+logger = logging.getLogger(__name__)
 BATCH_SIZE = 64
 ALLOWED_EXTENSIONS = {".txt", ".md"}
 
@@ -263,8 +266,10 @@ def _split_file(
 def _build_chunks_for_path(
     file_path: Path,
     base_dir: Path,
+    source_path: Path | None = None,
 ) -> tuple[str, str, list[Document]]:
-    rel_path = file_path.relative_to(base_dir)
+    logical_path = source_path or file_path
+    rel_path = logical_path.relative_to(base_dir)
     rel_source = rel_path.as_posix()
     folder_category = (
         rel_path.parent.as_posix() if rel_path.parent != Path(".") else "общее"
@@ -281,7 +286,7 @@ def _build_chunks_for_path(
 
     doc_title = (
         _clean_meta_str(meta.get("title"))
-        or file_path.stem.replace("_", " ").replace("-", " ").strip()
+        or logical_path.stem.replace("_", " ").replace("-", " ").strip()
     )
     source_url = _first_meta_str(meta, ("source_url", "fetch_url", "url"))
 
@@ -294,10 +299,10 @@ def _build_chunks_for_path(
 
     chunks = _split_file(
         text=body,
-        ext=file_path.suffix.lower(),
+        ext=logical_path.suffix.lower(),
         category=category,
         rel_source=rel_source,
-        filename=file_path.name,
+        filename=logical_path.name,
         doc_title=doc_title,
         source_url=source_url,
     )
@@ -330,17 +335,24 @@ def save_and_index_file(
     rel_posix = _sanitize_rel_path(category, filename)
     target = _resolve_safe(root, rel_posix.as_posix())
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_bytes(raw_bytes)
+    # Validate a staged file first. A malformed update must not erase the old file.
+    staged = None
+    try:
+        with NamedTemporaryFile(dir=target.parent, prefix=".upload-", suffix=target.suffix, delete=False) as temp:
+            staged = Path(temp.name)
+            temp.write(raw_bytes)
+        resolved_category, rel_source, chunks = _build_chunks_for_path(staged, root, source_path=target)
+        if not chunks:
+            raise ValueError(f"Не удалось извлечь текст из файла {filename}")
 
-    resolved_category, rel_source, chunks = _build_chunks_for_path(target, root)
-    if not chunks:
-        target.unlink(missing_ok=True)
-        raise ValueError(f"Не удалось извлечь текст из файла {filename}")
-
-    delete_document_points(rel_source)
-    store = get_vectorstore()
-    for i in range(0, len(chunks), BATCH_SIZE):
-        store.add_documents(chunks[i : i + BATCH_SIZE])
+        delete_document_points(rel_source)
+        store = get_vectorstore()
+        for i in range(0, len(chunks), BATCH_SIZE):
+            store.add_documents(chunks[i : i + BATCH_SIZE])
+        staged.replace(target)
+    finally:
+        if staged is not None:
+            staged.unlink(missing_ok=True)
 
     return DocumentInfo(
         category=resolved_category,
@@ -354,6 +366,8 @@ def delete_file_and_vectors(source: str, data_dir: str | None = None) -> None:
     target = _resolve_safe(root, source)
     rel_source = target.relative_to(root).as_posix()
 
+    delete_document_points(rel_source)
+
     if target.exists() and target.is_file():
         target.unlink()
         parent = target.parent
@@ -364,8 +378,6 @@ def delete_file_and_vectors(source: str, data_dir: str | None = None) -> None:
             except OSError:
                 break
 
-    delete_document_points(rel_source)
-
 
 def list_storage_files(data_dir: str | None = None) -> list[AdminFileInfo]:
     root = _ensure_root(data_dir)
@@ -375,6 +387,7 @@ def list_storage_files(data_dir: str | None = None) -> list[AdminFileInfo]:
     for path in sorted(root.rglob("*")):
         if (
             path.is_file()
+            and path.resolve().is_relative_to(root)
             and path.suffix.lower() in ALLOWED_EXTENSIONS
             and not _is_hidden(path.relative_to(root))
         ):
@@ -413,17 +426,12 @@ def index_dataset(data_dir: str | None = None) -> ReindexResponse:
         path
         for path in root.rglob("*")
         if path.is_file()
+        and path.resolve().is_relative_to(root)
         and path.suffix.lower() in ALLOWED_EXTENSIONS
         and not _is_hidden(path.relative_to(root))
     )
     if not dataset_files:
-        recreate_collection()
-        return ReindexResponse(
-            folders_found=0,
-            files_indexed=0,
-            total_chunks=0,
-            files=[],
-        )
+        raise ValueError("В каталоге данных нет .txt и .md файлов; существующий индекс сохранён")
 
     all_chunks: list[Document] = []
     file_stats: list[DocumentInfo] = []
@@ -447,12 +455,14 @@ def index_dataset(data_dir: str | None = None) -> ReindexResponse:
     if not all_chunks:
         raise ValueError("Все найденные .txt и .md файлы оказались пустыми")
 
+    logger.info("index.rebuild_started", extra={"files": len(file_stats), "chunks": len(all_chunks)})
     recreate_collection()
     store = get_vectorstore()
 
     for i in range(0, len(all_chunks), BATCH_SIZE):
         store.add_documents(all_chunks[i : i + BATCH_SIZE])
 
+    logger.info("index.rebuild_finished", extra={"files": len(file_stats), "chunks": len(all_chunks)})
     return ReindexResponse(
         folders_found=len(folders_seen),
         files_indexed=len(file_stats),

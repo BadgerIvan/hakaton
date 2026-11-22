@@ -2,10 +2,18 @@ name: partner-agent
 
 x-app-environment: &app-environment
   DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-partner}:${POSTGRES_PASSWORD:-partner_local_password}@postgres:5432/${POSTGRES_DB:-partner}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
   ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173,http://127.0.0.1:5173}
+
+x-log-policy: &log-policy
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 
 services:
   postgres:
+    logging: *log-policy
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-partner}
@@ -21,7 +29,10 @@ services:
     restart: unless-stopped
 
   auth:
-    build: ./services/auth_service
+    logging: *log-policy
+    build:
+      context: .
+      dockerfile: services/auth_service/Dockerfile
     environment:
       <<: *app-environment
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
@@ -36,7 +47,10 @@ services:
     restart: unless-stopped
 
   backend:
-    build: ./services/backend_service
+    logging: *log-policy
+    build:
+      context: .
+      dockerfile: services/backend_service/Dockerfile
     environment:
       <<: *app-environment
       AUTH_URL: http://auth:8002
@@ -59,6 +73,7 @@ services:
     restart: unless-stopped
 
   frontend:
+    logging: *log-policy
     build:
       context: .
       dockerfile: frontend/Dockerfile
@@ -77,6 +92,7 @@ services:
     restart: unless-stopped
 
   ollama:
+    logging: *log-policy
     image: ollama/ollama:latest
     environment:
       OLLAMA_FLASH_ATTENTION: '1'
@@ -94,14 +110,19 @@ services:
     restart: unless-stopped
 
   qdrant:
+    logging: *log-policy
     image: qdrant/qdrant:v1.13.4
     volumes:
       - qdrant_storage:/qdrant/storage
     restart: unless-stopped
 
   rag-service:
-    build: ./services/rag_service
+    logging: *log-policy
+    build:
+      context: .
+      dockerfile: services/rag_service/Dockerfile
     environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
       OLLAMA_URL: http://ollama:11434
       QDRANT_URL: http://qdrant:6333
       DATA_DIR: /app/data
@@ -113,6 +134,7 @@ services:
       HISTORY_LIMIT: ${RAG_HISTORY_LIMIT:-6}
       NUM_CTX: ${NUM_CTX:-8192}
       LLM_REASONING: 'false'
+      RERANK_THREADS: ${RERANK_THREADS:-2}
     volumes:
       - rag_data:/app/data
       - fastembed_cache:/app/.fastembed_cache
